@@ -1,0 +1,12 @@
+{% load static %}
+<li class="list-group-item asistente-item" id="asistente-{{ asistente.id }}">
+    {% if asistente.foto %}
+        <img src="{{ asistente.foto.url }}" alt="{{ asistente.nombre }}" class="asistente-img">
+    {% else %}
+        <img src="{% static 'img/person.jpg' %}" alt="Sin foto" class="asistente-img">
+    {% endif %}
+    <div>
+        <span class="fw-bold">{{ asistente.nombre }} {{ asistente.apellido }}</span>
+        <small class="d-block text-muted">{{ asistente.rubro }}</small>
+    </div>
+</li>

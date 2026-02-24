@@ -1,0 +1,31 @@
+{% extends 'inicio.html' %}
+{% load static %}
+
+{% block contenido %}
+<main class="container my-5">
+    <div class="card shadow-sm text-center mx-auto p-4" style="max-width: 600px; border-radius: 10px;">
+        {% if perfil_visitado.foto %}
+            <img src="{{ perfil_visitado.foto.url }}" alt="Avatar de {{ perfil_visitado.nombre }}" class="rounded-circle mx-auto" style="width: 120px; height: 120px; object-fit: cover; margin-bottom: 15px;">
+        {% else %}
+            <img src="{% static 'img/person.jpg' %}" alt="Avatar por defecto" class="rounded-circle mx-auto" style="width: 120px; height: 120px; object-fit: cover; margin-bottom: 15px;">
+        {% endif %}
+
+        <h3 class="mt-2">{{ perfil_visitado.nombre }} {{ perfil_visitado.apellido }}</h3>
+        <p class="text-muted mb-1"><i class="bi bi-person-badge-fill me-1"></i>{{ perfil_visitado.rubro|default:"Sin rubro especificado" }}</p>
+        <div class="text-start">
+            <p class="text-center text-muted mt-3"><i class="bi bi-envelope-fill me-1"></i>{{ perfil_visitado.email }} | <i class="bi bi-telephone-fill ms-2 me-1"></i>{{ perfil_visitado.telefono|default:"No especificado" }}</p>
+        </div>
+
+        {% if perfil_visitado.nombre_empresa %}
+            <hr class="my-4">
+            <div class="text-start">
+                <h5 class="text-center mb-3"><i class="bi bi-building me-2"></i>{{ perfil_visitado.nombre_empresa }}</h5>
+                {% if perfil_visitado.rubro_empresa %}<p><strong>Rubro:</strong> {{ perfil_visitado.rubro_empresa }}</p>{% endif %}
+                {% if perfil_visitado.descripcion_empresa %}<p><strong>Descripción:</strong> {{ perfil_visitado.descripcion_empresa }}</p>{% endif %}
+                {% if perfil_visitado.web_empresa %}<p><strong>Sitio Web:</strong> <a href="{{ perfil_visitado.web_empresa }}" target="_blank">{{ perfil_visitado.web_empresa }}</a></p>{% endif %}
+                {% if perfil_visitado.buscando %}<p class="text-primary fst-italic mt-3"><i class="bi bi-search me-1"></i><strong>Busca:</strong> {{ perfil_visitado.buscando }}</p>{% endif %}
+            </div>
+        {% endif %}
+    </div>
+</main>
+{% endblock contenido %}

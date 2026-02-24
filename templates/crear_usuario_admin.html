@@ -1,0 +1,278 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Usuario - EcosistemaLA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            padding: 10px 20px;
+            color: white;
+        }
+        header img {
+            height: 50px;
+        }
+        header nav a {
+            margin-left: 15px;
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+        }
+        .card {
+            border-radius: 10px;
+            background-color: white;
+        }
+        #fotoPreview {
+            max-width: 150px;
+            max-height: 150px;
+            display: block;
+            margin: 10px auto;
+            border-radius: 50%;
+        }
+        footer.custom-footer {
+            background: linear-gradient(90deg, #8EE000, #0096A7);
+            color: white;
+            padding: 30px 0;
+            margin-top: auto;
+        }
+        footer.custom-footer a {
+            color: white;
+            text-decoration: none;
+        }
+        footer.custom-footer a:hover {
+            text-decoration: underline;
+        }
+        .btn-gradient-green {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            border: none;
+            color: white;
+        }
+        .btn-gradient-green:hover {
+            background: linear-gradient(to right, #6cac00, #007a87);
+            color: white;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+        <img src="{% static 'img/logo.jpg' %}" alt="EcosistemaLA">
+        <div class="ms-2">
+            <span class="fw-bold fs-5 d-block">EcosistemaLA</span>
+            <small>Panel de Administración</small>
+        </div>
+    </div>
+    <nav>
+        <a href="{% url 'panel-admin:gestion_usuarios' %}" class="btn btn-light btn-lg me-2" style="font-weight:500; border-radius:25px;">Volver</a>
+    </nav>
+</header>
+
+<!-- FORMULARIO -->
+<main class="container mt-5 mb-5">
+    <div class="card shadow p-4 mx-auto" style="max-width:600px;">
+        <div class="text-center mb-4">
+            <h2>Crear Nuevo Usuario</h2>
+            <small class="text-muted">Desde el Panel de Administración</small>
+        </div>
+        <form method="POST" enctype="multipart/form-data" autocomplete="off">
+            {% csrf_token %}
+
+            <!-- Bloque para mostrar errores generales del formulario (que no pertenecen a un campo específico) -->
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        <p class="mb-0">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="{{ form.nombre.id_for_label }}" class="form-label">Nombre *</label>
+                    {{ form.nombre }}
+                    {% for error in form.nombre.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.apellido.id_for_label }}" class="form-label">Apellido *</label>
+                    {{ form.apellido }}
+                    {% for error in form.apellido.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.rubro.id_for_label }}" class="form-label">Rubro (Opcional)</label>
+                    {{ form.rubro }}
+                    {% for error in form.rubro.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6" id="otroRubroContainer" style="display: none;">
+                    <label for="{{ form.rubro_otro.id_for_label }}" class="form-label">Especifica su rubro *</label>
+                    {{ form.rubro_otro }}
+                    {% for error in form.rubro_otro.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.rut.id_for_label }}" class="form-label">RUT *</label>
+                    {{ form.rut }}
+                    {% for error in form.rut.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">Email *</label>
+                    {{ form.email }}
+                    {% for error in form.email.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <label for="{{ form.telefono.id_for_label }}" class="form-label">Teléfono (Opcional)</label>
+                    {{ form.telefono }}
+                    {% for error in form.telefono.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Foto de Perfil (Opcional)</label>
+                    <div class="input-group">
+                        <label for="{{ form.foto.id_for_label }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-upload me-2"></i>Elegir archivo
+                        </label>
+                        <span id="fileName" class="form-control text-muted" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
+                    </div>
+                    {{ form.foto }}
+                    {% for error in form.foto.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    <img id="fotoPreview" src="#" alt="Vista previa" style="display:none; margin-top: 10px;">
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Botón para desplegar la sección de empresa -->
+            <div class="text-center mb-3">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEmpresa" aria-expanded="false" aria-controls="collapseEmpresa">
+                    <i class="bi bi-building-add me-2"></i>Añadir información de la empresa (Opcional)
+                </button>
+            </div>
+
+            <!-- Contenido desplegable de la empresa -->
+            <div class="collapse" id="collapseEmpresa">
+                <div class="card card-body bg-light border-0 mt-2">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.nombre_empresa.id_for_label }}" class="form-label">Nombre de la Empresa</label>
+                            {{ form.nombre_empresa }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.rubro_empresa.id_for_label }}" class="form-label">Rubro de la Empresa</label>
+                            {{ form.rubro_empresa }}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.descripcion_empresa.id_for_label }}" class="form-label">Descripción de la Empresa</label>
+                            {{ form.descripcion_empresa }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.web_empresa.id_for_label }}" class="form-label">Sitio Web</label>
+                            {{ form.web_empresa }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="{{ form.buscando.id_for_label }}" class="form-label">¿Qué buscas/ofreces?</label>
+                            {{ form.buscando }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-gradient-green btn-lg">Crear Usuario</button>
+                <a href="{% url 'panel-admin:gestion_usuarios' %}" class="btn btn-secondary btn-lg ms-2">Cancelar</a>
+            </div>
+            <div class="alert alert-info mt-3 text-center" role="alert" style="font-size: 0.85rem;">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                La contraseña será el RUT sin el dígito verificador.
+                El usuario podrá cambiarla desde su perfil.
+            </div>
+        </form>
+    </div>
+</main>
+
+<!-- FOOTER -->
+<footer class="custom-footer">
+    <div class="container text-center">
+        &copy; 2025 EcosistemaLA. Todos los derechos reservados.
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Vista previa de la foto
+    const fotoInput = document.getElementById('{{ form.foto.id_for_label }}');
+    const fotoPreview = document.getElementById('fotoPreview');
+
+    fotoInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                fotoPreview.setAttribute('src', e.target.result);
+                fotoPreview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        } else {
+            fotoPreview.style.display = 'none';
+        }
+
+        // Actualizar el nombre del archivo en el span
+        const fileNameSpan = document.getElementById('fileName');
+        if (this.files.length > 0) {
+            fileNameSpan.textContent = this.files[0].name;
+        } else {
+            fileNameSpan.textContent = 'Ningún archivo seleccionado';
+        }
+    });
+
+    // Lógica para mostrar/ocultar el campo "Otro Rubro"
+    const rubroSelect = document.getElementById('{{ form.rubro.id_for_label }}');
+    const otroRubroContainer = document.getElementById('otroRubroContainer');
+
+    function toggleOtroRubro() {
+        if (rubroSelect.value === 'otro') {
+            otroRubroContainer.style.display = 'block';
+            otroRubroContainer.style.display = 'none';
+        }
+    }
+
+    rubroSelect.addEventListener('change', toggleOtroRubro);
+    toggleOtroRubro(); // Ejecutar al cargar la página por si hay un valor preseleccionado
+</script>
+<script>
+    // Script para formatear el RUT mientras se escribe
+    const rutInput = document.querySelector('#{{ form.rut.id_for_label }}');
+
+    rutInput.addEventListener('input', function(e) {
+        let rut = e.target.value.replace(/[^\dkK]/g, ''); // Solo números y K
+        
+        if (rut.length > 1) {
+            let body = rut.slice(0, -1);
+            let dv = rut.slice(-1).toUpperCase();
+            
+            // Formatear cuerpo con puntos
+            let formattedBody = new Intl.NumberFormat('es-CL').format(body);
+            
+            e.target.value = `${formattedBody}-${dv}`;
+        } else {
+            e.target.value = rut;
+        }
+    });
+</script>
+
+</body>
+</html>

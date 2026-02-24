@@ -1,0 +1,564 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Asistencia - {{ reunion.detalle }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- CSS para Select2 y su tema de Bootstrap 5 -->
+    <link rel="stylesheet" href="{% static 'css/sweetalert2.min.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        header, .card-header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+        }
+        .asistente-item { display: flex; align-items: center; }
+        .asistente-img { width: 40px; height: 40px; object-fit: cover; border-radius: 50%; margin-right: 15px; }
+        .select2-container--bootstrap-5 .select2-selection { min-height: calc(3.5rem + 2px); }
+        .btn-eco {
+            background-color: #8EE000;
+            border: none;
+            color: #fff;
+        }
+        .btn-eco:hover {
+            background-color: #76c400;
+            color: #fff;
+        }
+        /* --- INICIO: Estilos para mejorar la apariencia del escáner --- */
+        #video-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px; /* Ajustado para que no sea tan grande */
+            margin: auto;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px dashed #0096A7;
+        }
+        #qr-placeholder {
+            border: 2px dashed #ced4da;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 350px;
+            margin: auto;
+        }
+        #scanner-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            box-shadow: inset 0 0 0 5px rgba(0, 150, 167, 0.5);
+        }
+        #lista-asistentes {
+            max-height: 50vh; /* Límite de altura al 50% de la ventana */
+            overflow-y: auto; /* Barra de scroll vertical si se supera la altura */
+        }
+        /* --- FIN: Estilos para mejorar la apariencia del escáner --- */
+    </style>
+</head>
+<body>
+
+<header class="p-3 shadow-sm d-flex justify-content-between align-items-center">
+    <div>
+        <h4 class="mb-0">Registrar Asistencia</h4>
+        <small class="text-white-50">{{ reunion.detalle }}</small>
+    </div>
+    <a href="{% url 'panel-admin:gestion_reuniones' %}" class="btn btn-outline-light">Volver a Reuniones</a>
+</header>
+
+<main class="container my-5">
+    <!-- Mensajes de Django -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Columna del Escáner -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-qr-code-scan me-2"></i>Escanear QR de Asistente</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div id="scanner-container">
+                        <!-- Placeholder QR -->
+                        <div id="qr-placeholder" class="text-muted p-4">
+                            <i class="bi bi-qr-code" style="font-size: 8rem; color: #0096A7;"></i>
+                            <p class="mt-2 mb-0">La cámara aparecerá aquí</p>
+                        </div>
+                        <div id="video-container" class="d-none">
+                            <video id="qr-video" playsinline style="width: 100%; height: auto;"></video>
+                            <div id="scanner-overlay"></div>
+                        </div>
+                        <canvas id="qr-canvas" class="d-none"></canvas>
+                        <div id="scanner-status" class="mt-2 text-muted">Inactivo. Presiona un botón para comenzar.</div>
+                        <div class="mt-3 d-grid gap-2 d-sm-flex justify-content-sm-center">
+                            <button id="start-scan-btn" class="btn btn-primary"><i class="bi bi-camera-video-fill me-2"></i> Iniciar Cámara</button>
+                            <label for="scan-file-input" class="btn btn-secondary"><i class="bi bi-image me-2"></i> Escanear Archivo</label>
+                            <input type="file" id="scan-file-input" accept="image/*" class="d-none">
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div>
+                            <p class="text-muted mb-2">¿Usas un escáner de mano (USB)?</p>
+                            <form id="physical-scanner-form">
+                                <input type="text" id="physical-scanner-input" class="form-control text-center" placeholder="Haz clic aquí y escanea el código QR...">
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna de Registro Manual -->
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person-plus-fill me-2"></i>Registro Manual</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="usuario_id" class="form-label">Seleccionar Usuario:</label>
+                            <select name="usuario_id" id="usuario_id" class="form-select" required>
+                                <option value="" disabled selected>-- Elige un asistente --</option>
+                                {% for usuario in usuarios_no_asistentes %}
+                                    <option value="{{ usuario.id }}" data-rut="{{ usuario.rut }}">{{ usuario.nombre }} {{ usuario.apellido }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" name="manual_add" class="btn btn-eco"><i class="bi bi-check-circle me-1"></i>Añadir Asistente</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna de Asistentes -->
+        <div class="col-lg-4 col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Asistentes Registrados (<span id="contador-asistentes">{{ asistentes|length }}</span>)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="buscar-asistente" class="form-label visually-hidden">Buscar Asistente Registrado</label>
+                        <input type="text" id="buscar-asistente" class="form-control" placeholder="Buscar por nombre o RUT...">
+                    </div>
+                    <ul class="list-group list-group-flush" id="lista-asistentes">
+                        {% for asistente in asistentes %}
+                        <li class="list-group-item asistente-item d-flex justify-content-between align-items-center" id="asistente-{{ asistente.id }}" data-rut="{{ asistente.rut }}">
+                            <div class="d-flex align-items-center">
+                                {% if asistente.foto %}
+                                    <img src="{{ asistente.foto.url }}" alt="{{ asistente.nombre }}" class="asistente-img">
+                                {% else %}
+                                    <img src="{% static 'img/predeterminado.png' %}" alt="Sin foto" class="asistente-img">
+                                {% endif %}
+                                <div>
+                                    <span class="fw-bold asistente-nombre">{{ asistente.nombre }} {{ asistente.apellido }}</span>
+                                    <small class="d-block text-muted">{{ asistente.rubro }}</small>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <a href="{% url 'imprimir_etiqueta' asistente.id %}" target="_blank" class="btn btn-outline-secondary btn-sm me-2" title="Imprimir etiqueta">
+                                    <i class="bi bi-printer-fill"></i>
+                                </a>
+                                <form action="{% url 'panel-admin:quitar_asistencia' reunion.id asistente.id %}" method="POST" onsubmit="return confirm('¿Estás seguro de que quieres quitar a este asistente?');" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Quitar asistencia">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </li>
+                        {% empty %}
+                        <li id="no-asistentes" class="list-group-item text-muted text-center">Aún no hay asistentes registrados.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- jQuery (necesario para Select2) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Librería para escanear QR -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="{% static 'js/sweetalert2.min.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const listaAsistentes = document.getElementById('lista-asistentes'); // Ya definido
+    const contadorAsistentes = document.getElementById('contador-asistentes');
+    const noAsistentesMsg = document.getElementById('no-asistentes');
+    const buscarAsistenteInput = document.getElementById('buscar-asistente');
+    let lastResult = null;
+    let processing = false; // Flag para evitar escaneos múltiples
+
+    // Función central para manejar un resultado de escaneo
+    function handleScan(decodedText) {
+        if (decodedText && decodedText !== lastResult && !processing) {
+            processing = true;
+            lastResult = decodedText; // Marcar este código como procesado
+
+            const userId = decodedText.split('/').filter(Boolean).pop();
+            if (userId && !isNaN(userId)) { 
+                // Verificar si el usuario ya está en la lista para no hacer la petición de nuevo
+                if (document.getElementById(`asistente-${userId}`)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Ya Registrado',
+                        text: 'Este usuario ya figura como asistente.',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => { // Liberar el bloqueo después de un tiempo
+                        processing = false;
+                        lastResult = null;
+                    }, 2000);
+                    return;
+                }
+
+                fetch(`{% url 'panel-admin:marcar_asistencia_qr' reunion.id 999 %}`.replace('999', userId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Asistencia Registrada!',
+                            text: data.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+
+                        // Solo intenta imprimir si la URL existe
+                        if (data.print_url) {
+                            // Abrir la URL de la etiqueta en una nueva pestaña.
+                            // El usuario puede entonces usar la función de impresión del navegador (Ctrl+P).
+                            window.open(data.print_url, '_blank');
+                        }
+                        // Actualizar UI sin recargar
+                        actualizarUIAgregarAsistente(data.asistente);
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Error de Conexión', 'No se pudo comunicar con el servidor.', 'error');
+                })
+                .finally(() => {
+                    // Después de 2 segundos, permitimos un nuevo escaneo para evitar dobles lecturas accidentales.
+                    setTimeout(() => {
+                        lastResult = null;
+                        processing = false;
+                    }, 2000);
+                });
+            } else {
+                Swal.fire('QR Inválido', 'El código QR escaneado no parece ser un perfil de usuario válido.', 'error');
+                processing = false;
+            }
+        }
+    }
+
+    // Wrapper para la cámara, llama a la función central
+    function onScanSuccess(decodedText, decodedResult) {
+        handleScan(decodedText); // La lógica de 'lastResult' y 'processing' se maneja dentro de handleScan
+    }
+
+    // --- INICIO: Nuevo código del escáner con jsQR ---
+    const videoContainer = document.getElementById('video-container');
+    const video = document.getElementById('qr-video');
+    const canvas = document.getElementById('qr-canvas');
+    const ctx = canvas.getContext('2d');
+    const statusDiv = document.getElementById('scanner-status');
+    const startBtn = document.getElementById('start-scan-btn');
+    const fileInput = document.getElementById('scan-file-input');
+    const qrPlaceholder = document.getElementById('qr-placeholder');
+    const physicalScannerForm = document.getElementById('physical-scanner-form');
+    const physicalScannerInput = document.getElementById('physical-scanner-input');
+
+    // Manejo del escáner de mano (tipo teclado)
+    physicalScannerForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // Evita que la página se recargue
+        let decodedText = physicalScannerInput.value.trim();
+        if (decodedText) {
+            // Corrección para problemas de layout de teclado (US -> ES)
+            // Reconstruye la URL mal interpretada por el escáner de mano.
+            // Ejemplo: httpÑ--192.168.1.105Ñ8000-perfil.publico-1-  -> http://192.168.1.105:8000/perfil-publico/1/
+            let correctedText = decodedText
+                .replace(/Ñ--/g, '://')      // 1. Corrige el '://'
+                .replace(/Ñ/g, ':')          // 2. Corrige el ':' del puerto
+                .replace(/\./g, '-')         // 3. Convierte los puntos (ej: perfil.publico) en guiones
+                .replace(/-(\d+)-?$/, '/$1/'); // 4. Corrige la barra final del ID (ej: -1- -> /1/)
+            
+            handleScan(correctedText); // Llamamos a la función de escaneo central con el texto corregido
+            // Limpia y re-enfoca para el siguiente escaneo
+            physicalScannerInput.value = '';
+            physicalScannerInput.focus();
+        }
+    });
+
+    // --- INICIO: Mejoras para el escáner de mano ---
+
+    // 1. Enfocar el input del escáner de mano al cargar la página.
+    physicalScannerInput.focus();
+
+    // 2. Si el usuario hace clic en cualquier lugar que no sea un campo de entrada o botón,
+    //    devolvemos el foco al input del escáner para que siempre esté listo.
+    document.body.addEventListener('click', function(e) {
+        const interactiveElements = ['INPUT', 'BUTTON', 'SELECT', 'A', 'FORM'];
+        // Si el clic no fue en un elemento interactivo o dentro del contenedor de select2, re-enfocamos.
+        if (!interactiveElements.includes(e.target.tagName) && !e.target.closest('.select2-container')) {
+            physicalScannerInput.focus();
+        }
+    });
+
+    // --- FIN: Mejoras para el escáner de mano ---
+
+
+    let stream = null;
+    let animationFrameId = null;
+
+    function tick() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+            });
+
+            if (code) {
+                onScanSuccess(code.data);
+            }
+        }
+        animationFrameId = requestAnimationFrame(tick);
+    }
+
+    async function startScan() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true); // Required for iOS
+            video.play();
+            qrPlaceholder.classList.add('d-none');
+            videoContainer.classList.remove('d-none');
+            statusDiv.textContent = "Buscando código QR...";
+            startBtn.textContent = "Detener Cámara";
+            startBtn.classList.remove('btn-primary');
+            startBtn.classList.add('btn-danger');
+            animationFrameId = requestAnimationFrame(tick);
+        } catch (err) {
+            console.error("Error al acceder a la cámara:", err);
+            if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+                statusDiv.textContent = "Permiso de cámara denegado.";
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Permiso de Cámara Denegado',
+                    html: `
+                        <p class="text-start mb-2">Tu navegador ha bloqueado el acceso a la cámara.</p>
+                        <p class="text-start mb-0">Para solucionarlo:</p>
+                        <ol class="text-start">
+                            <li>Busca el <strong>ícono de la cámara <i class="bi bi-camera-video-off-fill"></i></strong> en la barra de direcciones (arriba).</li>
+                            <li>Haz clic en él y selecciona <strong>"Permitir siempre..."</strong>.</li>
+                            <li><strong>Recarga la página</strong> e inténtalo de nuevo.</li>
+                        </ol>`,
+                });
+            } else {
+                statusDiv.textContent = "No se pudo acceder a la cámara.";
+            }
+        }
+    }
+
+    function stopScan() {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+        }
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        videoContainer.classList.add('d-none');
+        qrPlaceholder.classList.remove('d-none');
+        statusDiv.textContent = "Inactivo. Presiona un botón para comenzar.";
+        startBtn.textContent = "Iniciar Cámara";
+        startBtn.classList.remove('btn-danger');
+        startBtn.classList.add('btn-primary');
+    }
+
+    startBtn.addEventListener('click', () => {
+        if (stream) {
+            stopScan();
+        } else {
+            startScan();
+        }
+    });
+
+    fileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) {
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0, img.width, img.height);
+                const imageData = ctx.getImageData(0, 0, img.width, img.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                if (code) {
+                    onScanSuccess(code.data);
+                } else {
+                    Swal.fire('No encontrado', 'No se pudo encontrar un código QR en la imagen.', 'error');
+                }
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+        // Resetear el input para poder seleccionar el mismo archivo de nuevo
+        e.target.value = '';
+    });
+    // --- FIN: Nuevo código del escáner con jsQR ---
+
+    function actualizarUIAgregarAsistente(asistente) {
+        if (noAsistentesMsg) noAsistentesMsg.remove();
+
+        const nuevoAsistenteHTML = `
+            <div class="d-flex align-items-center">
+                <img src="${asistente.foto_url}" alt="${asistente.nombre}" class="asistente-img">
+                <div>
+                    <span class="fw-bold asistente-nombre">${asistente.nombre} ${asistente.apellido}</span>
+                    <small class="d-block text-muted">${asistente.rubro}</small>
+                </div>
+            </div>
+            <div class="d-flex align-items-center">
+                <a href="/imprimir-etiqueta/${asistente.id}/" target="_blank" class="btn btn-outline-secondary btn-sm me-2" title="Imprimir etiqueta">
+                    <i class="bi bi-printer-fill"></i>
+                </a>
+                <form action="/panel-admin/reuniones/{{ reunion.id }}/quitar-asistencia/${asistente.id}/" method="POST" onsubmit="return confirm('¿Estás seguro de que quieres quitar a este asistente?');" class="d-inline">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Quitar asistencia">
+                        <i class="bi bi-trash-fill"></i>
+                    </button>
+                </form>
+            </div>
+        `;
+        const li = document.createElement('li');
+        li.className = 'list-group-item asistente-item d-flex justify-content-between align-items-center';
+        li.id = `asistente-${asistente.id}`;
+        li.dataset.rut = asistente.rut || ''; // Aseguramos que el RUT se añada al nuevo elemento
+        li.innerHTML = nuevoAsistenteHTML;
+        listaAsistentes.prepend(li);
+
+        contadorAsistentes.textContent = parseInt(contadorAsistentes.textContent) + 1;
+
+        // Actualizamos el select de registro manual
+        $(`#usuario_id option[value='${asistente.id}']`).data('rut', asistente.rut).remove();
+        $('#usuario_id').val(null).trigger('change');
+    }
+
+    // Función para dar formato a los resultados en el desplegable de Select2
+    function formatUser(user) {
+        if (!user.id) {
+            return user.text; // Para el placeholder
+        }
+        // Obtener el RUT del atributo data-rut del <option>
+        const rut = $(user.element).data('rut');
+        // Crear el HTML personalizado para la opción
+        const $user = $(
+            '<div class="d-flex flex-column">' +
+                '<div>' + user.text + '</div>' +
+                '<small class="text-muted">RUT: ' + rut + '</small>' +
+            '</div>'
+        );
+        return $user;
+    }
+
+    // Inicializar Select2 en el campo de selección de usuario
+    $('#usuario_id').select2({
+        theme: 'bootstrap-5',
+        placeholder: $(this).data('placeholder'),
+        templateResult: formatUser, // Aplicar la función de formato
+        // Habilitar búsqueda por RUT además del nombre
+        matcher: function(params, data) { 
+            // Si no hay término de búsqueda, devuelve todas las opciones
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+
+            // No filtrar el placeholder
+            if (typeof data.text === 'undefined' || !data.element) {
+                return null;
+            }
+
+            const term = params.term.toLowerCase();
+            const userText = data.text.toLowerCase();
+            const userRut = $(data.element).data('rut') ? $(data.element).data('rut').toString().toLowerCase() : '';
+
+            // Si el término de búsqueda se encuentra en el nombre O en el RUT, muestra el resultado
+            if (userText.indexOf(term) > -1 || userRut.indexOf(term) > -1) {
+                return data;
+            }
+
+            // Si no hay coincidencia, no lo muestres
+            return null;
+        }
+    });
+
+    // Lógica para imprimir etiqueta después de un registro manual
+    const urlParams = new URLSearchParams(window.location.search);
+    const userIdToPrint = urlParams.get('print_user');
+    if (userIdToPrint) {
+        const printUrl = `/imprimir-etiqueta/${userIdToPrint}/`;
+        window.open(printUrl, '_blank');
+        // Opcional: Limpiar la URL para que no se vuelva a imprimir al recargar manualmente
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // Lógica para filtrar la lista de asistentes registrados
+    buscarAsistenteInput.addEventListener('input', function() {
+        const filtro = this.value.toLowerCase().trim();
+        const asistentes = listaAsistentes.getElementsByTagName('li');
+        let visibles = 0;
+        for (let i = 0; i < asistentes.length; i++) {
+            const li = asistentes[i];
+            const nombre = li.querySelector('.asistente-nombre').textContent.toLowerCase().trim();
+            const rut = li.dataset.rut ? li.dataset.rut.toLowerCase().trim() : '';
+            if (nombre.includes(filtro) || rut.includes(filtro)) {
+                li.classList.remove('d-none');
+                visibles++;
+            } else {
+                li.classList.add('d-none');
+            }
+        }
+    });
+});
+</script>
+<!-- Script de Bootstrap para los alerts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

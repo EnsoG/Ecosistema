@@ -1,0 +1,16 @@
+{% extends 'inicio.html' %}
+{% load static %}
+
+{% block contenido %}
+<main class="container my-5">
+    <div class="text-center p-5 rounded-3 bg-light border shadow-sm">
+        <i class="bi bi-tools display-1 text-primary"></i>
+        <h1 class="mt-4">Sección en Mantenimiento</h1>
+        <p class="lead text-muted">
+            El directorio de miembros y los perfiles públicos están siendo actualizados para mejorar tu experiencia.
+        </p>
+        <p>Disculpa las molestias. Estará disponible de nuevo muy pronto.</p>
+        <a href="{% url 'inicio' %}" class="btn btn-primary mt-3">Volver al Inicio</a>
+    </div>
+</main>
+{% endblock %}

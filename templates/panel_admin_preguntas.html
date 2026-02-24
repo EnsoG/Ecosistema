@@ -1,0 +1,93 @@
+{% extends 'panel_admin_base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Preguntas Frecuentes{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Gestión de Preguntas Frecuentes</h1>
+
+    <!-- Aquí iría un formulario para crear nuevas preguntas -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Crear Nueva Pregunta</h5>
+        </div>
+        <div class="card-body">
+            <!-- <form method="POST"> ... </form> -->
+            <p class="text-muted">Formulario de creación de preguntas aquí.</p>
+        </div>
+    </div>
+
+    <!-- Tabla con las preguntas existentes -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">Preguntas Existentes</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Pregunta</th>
+                            <th>Respuesta</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pregunta in preguntas %}
+                        <tr>
+                            <td>{{ pregunta.pregunta_texto|truncatechars:50 }}</td>
+                            <td>{{ pregunta.respuesta_texto|truncatechars:70 }}</td>
+                            <td class="text-end">
+                                <a href="#" class="btn btn-primary btn-sm"><i class="bi bi-pencil-fill"></i></a>
+                                
+                                <!-- Formulario para el botón de eliminar -->
+                                <form action="#" method="POST" class="d-inline delete-form">
+                                    {% csrf_token %}
+                                    <button type="button" class="btn btn-danger btn-sm delete-btn" data-nombre-item="{{ pregunta.pregunta_texto|truncatechars:30 }}">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">No hay preguntas creadas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            const form = this.closest('.delete-form');
+            const nombreItem = this.dataset.nombreItem;
+
+            Swal.fire({
+                title: `¿Estás seguro?`,
+                text: `Se eliminará la pregunta: "${nombreItem}"`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, ¡eliminar!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit(); // Envía el formulario (petición POST)
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

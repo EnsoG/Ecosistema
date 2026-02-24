@@ -1,0 +1,240 @@
+{% extends 'panel_admin_base.html' %}
+
+{% block title %}Estadísticas - Panel de Administrador{% endblock %}
+
+{% block panel_nav_buttons %}
+    <a href="{% url 'panel-admin:panel_admin' %}" class="btn btn-outline-light">Volver al Panel</a>
+{% endblock panel_nav_buttons %}
+
+{% block content %}
+<div class="container">
+    <!-- Encabezado y Filtro -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h1 class="mb-0">
+                {% if reunion_seleccionada %}
+                    Estadísticas de la Reunión
+                {% else %}
+                    Estadísticas Generales
+                {% endif %}
+            </h1>
+            {% if reunion_seleccionada %}
+                <p class="lead text-muted mb-0">{{ reunion_seleccionada.detalle }}</p>
+            {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Formulario de Filtro -->
+            <form method="GET" id="filtroReunionForm" class="d-flex align-items-center gap-2">
+                <select name="reunion_id" class="form-select" onchange="this.form.submit()">
+                    {% if usuario_actual.es_admin %}
+                        <option value="">Ver Estadísticas Generales</option>
+                    {% endif %}
+                    {% for reunion in reuniones_para_filtro %}
+                        <option value="{{ reunion.id }}" {% if reunion_seleccionada_id == reunion.id %}selected{% endif %}>
+                            {{ reunion.detalle }} ({{ reunion.fecha|date:"d/m/y" }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+            <!-- El ayudante no puede exportar la vista general -->
+            {% if usuario_actual.es_admin or reunion_seleccionada_id %}
+            <a href="{% url 'panel-admin:exportar_estadisticas_excel' %}{% if reunion_seleccionada_id %}?reunion_id={{ reunion_seleccionada_id }}{% endif %}" class="btn btn-success flex-shrink-0" title="Exportar {% if reunion_seleccionada %}estadísticas de la reunión{% else %}estadísticas generales{% endif %} a Excel">
+                <i class="bi bi-file-earmark-excel-fill"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tarjetas de Estadísticas Principales -->
+    <div class="row g-4 mb-4">
+        {% if not reunion_seleccionada and usuario_actual.es_admin %} {# Solo para admin en vista general #}
+            <div class="col-lg-3 col-md-6">
+                <div class="card text-center shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-people-fill text-primary"></i> Usuarios Totales</h5>
+                        <p class="card-text fs-2 fw-bold">{{ total_usuarios }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="card text-center shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title"><i class="bi bi-calendar-event-fill text-success"></i> Reuniones Totales</h5>
+                        <p class="card-text fs-2 fw-bold">{{ total_reuniones }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        <div class="col-lg-3 col-md-6">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-person-check-fill text-info"></i> Asistencias</h5>
+                    <p class="card-text fs-2 fw-bold">{{ total_asistencias|default:"0" }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <div class="card text-center shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-star-half text-warning"></i> Satisfacción Promedio</h5>
+                    <p class="card-text fs-2 fw-bold">{{ promedio_satisfaccion|floatformat:2|default:"N/A" }} / 5</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row g-4">
+        {% if not reunion_seleccionada and usuario_actual.es_admin %} {# Solo para admin en vista general #}
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">Asistencia a las Últimas 10 Reuniones</div>
+                <div class="card-body">
+                    <canvas id="asistenciaChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">Conversión: Interesados vs. Asistentes</div>
+                <div class="card-body">
+                    <canvas id="conversionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        {% if data_puntuacion %}
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Distribución de Satisfacción</div>
+                    <div class="card-body d-flex justify-content-center align-items-center">
+                        <div style="width: 80%; max-width: 350px;">
+                            <canvas id="satisfaccionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if data_rubro %}
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header">Top 5 Rubros de {% if reunion_seleccionada %}Asistentes{% else %}Usuarios{% endif %}</div>
+                    <div class="card-body">
+                        <canvas id="rubroChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Datos para los gráficos (en un formato que no interfiere con el linter de JS) -->
+{% if not reunion_seleccionada and usuario_actual.es_admin and labels_reuniones %}
+    {{ labels_reuniones|json_script:"chart-labels-reuniones" }}
+    {{ data_asistencia|json_script:"chart-data-asistencia" }}
+{% endif %}
+{{ data_conversion|json_script:"chart-data-conversion" }}
+{% if data_puntuacion %}
+    {{ labels_puntuacion|json_script:"chart-labels-puntuacion" }}
+    {{ data_puntuacion|json_script:"chart-data-puntuacion" }}
+{% endif %}
+{% if data_rubro %}
+    {{ labels_rubro|json_script:"chart-labels-rubro" }}
+    {{ data_rubro|json_script:"chart-data-rubro" }}
+{% endif %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Función para leer los datos desde las etiquetas script de forma segura
+        const getJSONData = (id) => {
+            const element = document.getElementById(id);
+            return element ? JSON.parse(element.textContent) : [];
+        };
+
+        // Gráfico de Asistencia (solo en vista general)
+        const asistenciaCtx = document.getElementById('asistenciaChart');
+        if (asistenciaCtx) {
+            new Chart(asistenciaCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: getJSONData('chart-labels-reuniones'),
+                    datasets: [{
+                        label: 'Nº de Asistentes',
+                        data: getJSONData('chart-data-asistencia'),
+                        backgroundColor: 'rgba(0, 150, 167, 0.6)',
+                        borderColor: 'rgba(0, 150, 167, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, suggestedMax: 10 } }, responsive: true }
+            });
+        }
+
+        // Gráfico de Conversión
+        const conversionCtx = document.getElementById('conversionChart');
+        if (conversionCtx) {
+            new Chart(conversionCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Interesados', 'Asistentes'],
+                    datasets: [{
+                        label: 'Total',
+                        data: getJSONData('chart-data-conversion'),
+                        backgroundColor: ['rgba(108, 117, 125, 0.6)', 'rgba(25, 135, 84, 0.6)'],
+                        borderColor: ['rgba(108, 117, 125, 1)', 'rgba(25, 135, 84, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true } }, responsive: true, plugins: { legend: { display: false } } }
+            });
+        }
+
+        // Gráfico de Satisfacción
+        const satisfaccionCtx = document.getElementById('satisfaccionChart');
+        if (satisfaccionCtx) {
+            new Chart(satisfaccionCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: getJSONData('chart-labels-puntuacion'),
+                    datasets: [{
+                        label: 'Cantidad de Votos',
+                        data: getJSONData('chart-data-puntuacion'),
+                        backgroundColor: ['#dc3545', '#ffc107', '#fd7e14', '#198754', '#0d6efd'],
+                    }]
+                },
+                options: { responsive: true, plugins: { legend: { position: 'top' } } }
+            });
+        }
+
+        // Gráfico de Rubros
+        const rubroCtx = document.getElementById('rubroChart');
+        if (rubroCtx) {
+            new Chart(rubroCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: getJSONData('chart-labels-rubro'),
+                    datasets: [{
+                        label: 'Cantidad de Usuarios',
+                        data: getJSONData('chart-data-rubro'),
+                        backgroundColor: 'rgba(142, 224, 0, 0.6)',
+                        borderColor: 'rgba(142, 224, 0, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: { 
+                    indexAxis: 'y', 
+                    responsive: true, 
+                    plugins: { legend: { display: false } },
+                    scales: { y: { afterFit: (scale) => { scale.width = 150; } } } // Ajusta el ancho para etiquetas largas
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

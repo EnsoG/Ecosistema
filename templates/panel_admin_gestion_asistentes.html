@@ -1,0 +1,53 @@
+{% extends 'panel_admin_base.html' %}
+
+{% block title %}Gestión de Asistentes - EcosistemaLA{% endblock %}
+
+{% block panel_nav_buttons %}
+    <a href="{% url 'panel-admin:panel_admin' %}" class="btn btn-outline-light">Volver al Panel</a>
+{% endblock panel_nav_buttons %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4 text-center">Gestión de Asistentes</h1>
+    <p class="text-center text-muted mb-4">Selecciona una reunión para ver la lista de sus asistentes.</p>
+
+    <div class="card shadow-lg">
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Reunión</th>
+                            <th>Fecha</th>
+                            <th class="text-center">Nº de Asistentes</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reunion in reuniones %}
+                        <tr>
+                            <td><strong>{{ reunion.detalle }}</strong></td>
+                            <td class="text-nowrap">{{ reunion.fecha|date:"d/m/Y H:i" }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-primary rounded-pill fs-6">
+                                    {{ reunion.num_asistentes }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'panel-admin:ver_asistentes_reunion' reunion.id %}" class="btn btn-success btn-sm" title="Ver Asistentes">
+                                    <i class="bi bi-people-fill me-1"></i> Ver Asistentes
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No hay reuniones para mostrar.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

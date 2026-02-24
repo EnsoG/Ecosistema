@@ -1,0 +1,260 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Perfil - EcosistemaLA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            padding: 15px 20px;
+            color: white;
+        }
+        main {
+            flex: 1;
+        }
+        .card {
+            border-radius: 10px;
+        }
+        footer {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            margin-top: auto; /* Empuja el footer hacia abajo */
+            padding: 30px 20px;
+        }
+        footer a {
+            color: white;
+            text-decoration: none;
+        }
+        .form-label i {
+            margin-right: 8px;
+            width: 20px; /* Ancho fijo para alinear texto */
+            text-align: center;
+        }
+        /* Estilo para la previsualización de la foto */
+        .profile-pic-wrapper {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            overflow: hidden;
+            cursor: pointer;
+            margin: 0 auto 1rem;
+            border: 4px solid #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .profile-pic {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .profile-pic-wrapper .upload-button {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            text-align: center;
+            padding: 5px 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .profile-pic-wrapper:hover .upload-button {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<header class="d-flex justify-content-between align-items-center p-3">
+    <div class="container d-flex justify-content-between align-items-center">
+        <!-- Logo y nombre -->
+        <a href="{% url 'inicio' %}" class="d-flex align-items-center text-white text-decoration-none">
+            <img src="{% static 'img/logo.jpg' %}" class="img-fluid rounded me-2" alt="Logo EcosistemaLA" style="height:50px;">
+            <div>
+                <span class="fw-bold fs-5 d-block">EcosistemaLA</span>
+                <small>Impulsando el ecosistema emprendedor del Biobío</small>
+            </div>
+        </a>
+    </div>
+</header>
+
+<main class="container my-5">
+    <div class="card shadow p-4 mx-auto" style="max-width: 600px;">
+        <h2 class="mb-4 text-center">
+            Editar Perfil
+            {% if usuario %}
+                <small class="d-block text-muted fs-6 fw-normal">Editando a: {{ usuario.nombre }} {{ usuario.apellido }}</small>
+            {% endif %}
+        </h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Campo de Foto de Perfil (rediseñado) -->
+            <div class="text-center mb-4">
+                <div class="profile-pic-wrapper" onclick="document.getElementById('{{ form.foto.id_for_label }}').click();">
+                    <img id="profilePicPreview" class="profile-pic" 
+                         src="{% if usuario.foto %}{{ usuario.foto.url }}{% else %}{% static 'img/person.jpg' %}{% endif %}" 
+                         alt="Foto de perfil">
+                    <div class="upload-button">
+                        <i class="bi bi-camera-fill"></i> Cambiar
+                    </div>
+                </div>
+                {{ form.foto }} <!-- El input real está oculto -->
+                {% for error in form.foto.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+            </div>
+
+            <fieldset class="border p-3 mb-4 rounded">
+                <legend class="float-none w-auto px-2 h6">Información Personal</legend>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label"><i class="bi bi-person"></i>{{ form.nombre.label }}</label>
+                        {{ form.nombre }}
+                        {% for error in form.nombre.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.apellido.id_for_label }}" class="form-label"><i class="bi bi-person"></i>{{ form.apellido.label }}</label>
+                        {{ form.apellido }}
+                        {% for error in form.apellido.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.rut.id_for_label }}" class="form-label"><i class="bi bi-card-text"></i>{{ form.rut.label }}</label>
+                        {{ form.rut }}
+                        {% for error in form.rut.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="{{ form.email.id_for_label }}" class="form-label"><i class="bi bi-envelope"></i>{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% for error in form.email.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="col-12">
+                        <label for="{{ form.telefono.id_for_label }}" class="form-label"><i class="bi bi-telephone"></i>{{ form.telefono.label }}</label>
+                        {{ form.telefono }}
+                        {% for error in form.telefono.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Botón para desplegar la sección de empresa -->
+            <div class="d-grid gap-2 mb-3">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEmpresa" aria-expanded="false" aria-controls="collapseEmpresa">
+                    {% if usuario.nombre_empresa %}
+                        <i class="bi bi-building-gear me-2"></i>Editar datos de mi Empresa
+                    {% else %}
+                        <i class="bi bi-building-add me-2"></i>Ingresa los datos de tu Empresa (Opcional)
+                    {% endif %}
+                </button>
+            </div>
+
+            <!-- Contenido desplegable de la empresa -->
+            <div class="collapse {% if form.nombre_empresa.errors or form.rubro_empresa.errors or form.descripcion_empresa.errors or form.web_empresa.errors or form.buscando.errors %}show{% endif %}" id="collapseEmpresa">
+                <fieldset class="border p-3 mb-4 rounded">
+                    <legend class="float-none w-auto px-2 h6">Datos de Empresa/Emprendimiento</legend>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="{{ form.nombre_empresa.id_for_label }}" class="form-label"><i class="bi bi-building"></i>{{ form.nombre_empresa.label }}</label>
+                            {{ form.nombre_empresa }}
+                            {% for error in form.nombre_empresa.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.rubro_empresa.id_for_label }}" class="form-label"><i class="bi bi-briefcase"></i>{{ form.rubro_empresa.label }}</label>
+                            {{ form.rubro_empresa }}
+                            {% for error in form.rubro_empresa.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.descripcion_empresa.id_for_label }}" class="form-label"><i class="bi bi-text-paragraph"></i>{{ form.descripcion_empresa.label }}</label>
+                            {{ form.descripcion_empresa }}
+                            {% for error in form.descripcion_empresa.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.web_empresa.id_for_label }}" class="form-label"><i class="bi bi-globe"></i>{{ form.web_empresa.label }}</label>
+                            {{ form.web_empresa }}
+                            {% for error in form.web_empresa.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-12">
+                            <label for="{{ form.buscando.id_for_label }}" class="form-label"><i class="bi bi-search-heart"></i>{{ form.buscando.label }}</label>
+                            {{ form.buscando }}
+                            {% for error in form.buscando.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+
+            {% if form.es_admin or form.es_ayudante or form.es_totem or form.password or form.cantidad_asistencias %}
+            <fieldset class="border p-3 mb-4 rounded">
+                <legend class="float-none w-auto px-2 h6">Administración</legend>
+                <div class="row g-3">
+                    {% for field in form %}
+                        {% if field.name in "password,cantidad_asistencias" %}
+                            <div class="col-md-6">
+                                <label for="{{ field.id_for_label }}" class="form-label"><i class="bi {% if field.name == 'password' %}bi-key{% else %}bi-calendar-check{% endif %}"></i>{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}<small class="form-text text-muted">{{ field.help_text }}</small>{% endif %}
+                                {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            </div>
+                        {% elif field.name in "es_admin,es_ayudante,es_totem" %}
+                            <div class="col-md-4">
+                                <div class="form-check mt-4">
+                                    {{ field }}
+                                    <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </fieldset>
+            {% endif %}
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-success px-5">Guardar Cambios</button>
+                <a href="{% url 'perfil' %}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<footer>
+    <div class="container text-center py-3">
+        <small>&copy; 2025 EcosistemaLA. Todos los derechos reservados.</small>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fotoInput = document.getElementById('{{ form.foto.id_for_label }}');
+        const fotoPreview = document.getElementById('profilePicPreview');
+
+        fotoInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fotoPreview.setAttribute('src', e.target.result);
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+    });
+</script>
+</body>
+</html>

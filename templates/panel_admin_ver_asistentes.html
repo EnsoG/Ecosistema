@@ -1,0 +1,117 @@
+{% extends 'panel_admin_base.html' %}
+{% load static %}
+
+{% block title %}Asistentes de {{ reunion.detalle }} - EcosistemaLA{% endblock %}
+
+{% block panel_nav_buttons %}
+    <a href="{% url 'panel-admin:gestion_asistentes' %}" class="btn btn-outline-light">Volver a Reuniones</a>
+{% endblock panel_nav_buttons %}
+
+{% block content %}
+<style>
+    .asistentes-list-container {
+        max-height: 60vh; /* Límite de altura (60% de la ventana) */
+        overflow-y: auto; /* Muestra una barra de scroll si es necesario */
+    }
+</style>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+        <div>
+            <h1 class="mb-2 fw-bold"><i class="bi bi-people-fill text-success me-2"></i>Asistentes de la Reunión</h1>
+            <p class="text-muted mb-0">Reunión: <strong>{{ reunion.detalle }}</strong></p>
+        </div>
+        <div>
+            <a href="{% url 'panel-admin:exportar_asistentes_reunion_excel' reunion.id %}?q={{ query|urlencode }}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i> Exportar a Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros y Búsqueda -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-end">
+                <div class="col-md-8">
+                    <label for="q" class="form-label">Buscar Asistente</label>
+                    <input type="text" name="q" id="q" class="form-control" placeholder="Nombre, RUT, email..." value="{{ query }}">
+                </div>
+                <div class="col-md-4 d-flex">
+                    <button type="submit" class="btn btn-success w-100 me-2"><i class="bi bi-search me-1"></i> Buscar</button>
+                    <a href="{% url 'panel-admin:ver_asistentes_reunion' reunion.id %}" class="btn btn-secondary w-100" title="Limpiar búsqueda"><i class="bi bi-x-lg"></i></a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive asistentes-list-container">
+                <table class="table table-striped table-hover align-middle">
+                    <thead style="background-color: #e9f5db;">
+                        <tr>
+                            <th>Nombre Completo</th>
+                            <th>RUT</th>
+                            <th>Email</th>
+                            <th>Rubro</th>
+                            <th>Teléfono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asistente in asistentes %}
+                        <tr>
+                            <td>{{ asistente.nombre }} {{ asistente.apellido }}</td>
+                            <td>{{ asistente.rut }}</td>
+                            <td>{{ asistente.email }}</td>
+                            <td>{{ asistente.get_rubro_real_display }}</td>
+                            <td>{{ asistente.telefono|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted p-4">
+                                {% if query %}
+                                    No se encontraron asistentes con los filtros aplicados.
+                                {% else %}
+                                    Esta reunión no tiene asistentes registrados.
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paginación -->
+    {% if asistentes.has_other_pages %}
+    <nav aria-label="Paginación de asistentes" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if asistentes.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if query %}&q={{ query }}{% endif %}">&laquo;</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ asistentes.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">Anterior</a></li>
+            {% endif %}
+
+            {% for num in asistentes.paginator.page_range %}
+                {% if asistentes.number == num %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > asistentes.number|add:'-3' and num < asistentes.number|add:'3' %}
+                    <li class="page-item"><a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}">{{ num }}</a></li>
+                {% elif num == asistentes.number|add:'-3' or num == asistentes.number|add:'3' %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if asistentes.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ asistentes.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Siguiente</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ asistentes.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">&raquo;</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

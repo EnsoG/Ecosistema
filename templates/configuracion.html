@@ -1,0 +1,85 @@
+{% extends 'inicio.html' %}
+{% load static %}
+
+{% block contenido %}
+<main class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h4 class="mb-0"><i class="bi bi-gear-fill me-2"></i>Configuración de la Cuenta</h4>
+                </div>
+                <div class="card-body p-4">
+                    <h5 class="card-title">Opciones de la cuenta</h5>
+                    <p class="card-text text-muted">Aquí podrás gestionar las preferencias de tu cuenta.</p>
+                    
+                    <ul class="list-group mt-4">
+                        <li class="list-group-item p-3">
+                            <form id="privacyForm" method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="perfil_publico" id="perfilPublicoInput" value="{{ usuario.perfil_publico|lower }}">
+                                <label class="form-label">Visibilidad de mi perfil en el directorio:</label>
+                                <div class="d-grid gap-2 d-sm-flex">
+                                    <button type="button" class="btn {% if usuario.perfil_publico %}btn-primary{% else %}btn-outline-secondary{% endif %} w-100" onclick="setPrivacy(true)">
+                                        <i class="bi bi-globe-americas me-2"></i>Público
+                                    </button>
+                                    <button type="button" class="btn {% if not usuario.perfil_publico %}btn-danger{% else %}btn-outline-secondary{% endif %} w-100" onclick="setPrivacy(false)">
+                                        <i class="bi bi-lock-fill me-2"></i>Privado
+                                    </button>
+                                </div>
+                            </form>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Mis tickets de soporte</span>
+                            <a href="{% url 'mis_tickets' %}" class="btn btn-outline-primary btn-sm">Ver</a>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>Cambiar mi contraseña</span>
+                            <a href="{% url 'cambiar_password' %}" class="btn btn-outline-primary btn-sm">Modificar</a>
+                        </li>
+                        <li class="list-group-item list-group-item-danger d-flex justify-content-between align-items-center">
+                            <span>Eliminar mi cuenta</span>
+                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#confirmarEliminarModal">Eliminar</button>
+                        </li>
+                    </ul>
+
+                    <div class="text-center mt-4">
+                        <a href="{% url 'inicio' %}" class="btn btn-secondary"><i class="bi bi-arrow-left-circle me-1"></i> Volver al Inicio</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+function setPrivacy(isPublic) {
+    const input = document.getElementById('perfilPublicoInput');
+    input.value = isPublic ? 'true' : 'false';
+    document.getElementById('privacyForm').submit();
+}
+</script>
+
+<!-- Modal de Confirmación para Eliminar Cuenta -->
+<div class="modal fade" id="confirmarEliminarModal" tabindex="-1" aria-labelledby="confirmarEliminarModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="confirmarEliminarModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmación Requerida</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás absolutamente seguro de que quieres eliminar tu cuenta?</p>
+        <p class="text-danger fw-bold">Esta acción es irreversible y se borrarán todos tus datos, incluyendo tu perfil, asistencias y respuestas a encuestas.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form action="{% url 'eliminar_cuenta' %}" method="POST" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Sí, eliminar mi cuenta</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock contenido %}

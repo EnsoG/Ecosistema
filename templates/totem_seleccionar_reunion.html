@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modo Tótem - Seleccionar Reunión</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f4f7f6; /* Fondo claro */
+            color: #212529; /* Texto oscuro */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .header-footer-totem {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+        }
+        .card {
+            background-color: #ffffff;
+            border: none;
+        }
+        .list-group-item {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+            color: #212529;
+            transition: background-color 0.2s;
+        }
+        .list-group-item:hover {
+            background-color: #e0f2d0; /* Verde claro al pasar el mouse */
+        }
+    </style>
+</head>
+<body>
+
+<header class="p-3 text-center header-footer-totem">
+    <h4 class="mb-0"><i class="bi bi-display-fill me-2"></i>Modo Tótem Activado</h4>
+    <small>Usuario: {{ usuario.nombre }}</small>
+</header>
+
+<main class="container my-auto">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg">
+                <div class="card-body p-4">
+                    <h2 class="text-center mb-4">Selecciona la Reunión</h2>
+                    {% if reuniones %}
+                        <div class="list-group">
+                            {% for reunion in reuniones %}
+                                <a href="{% url 'panel-admin:totem_escaner' reunion.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold">{{ reunion.detalle }}</span>
+                                    <span class="badge bg-success rounded-pill">{{ reunion.fecha|date:"d/m/y" }}</span>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning text-center">No hay reuniones próximas disponibles.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer class="text-center p-3 header-footer-totem mt-auto">
+    <a href="{% url 'logout' %}" class="btn btn-sm btn-light"><i class="bi bi-power me-1"></i> Salir del Modo Tótem</a>
+</footer>
+
+</body>
+</html>

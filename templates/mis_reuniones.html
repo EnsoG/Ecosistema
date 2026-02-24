@@ -1,0 +1,80 @@
+{% extends 'inicio.html' %}
+{% load static %}
+
+{% block contenido %}
+<main class="container my-5">
+    <div class="text-center mb-5">
+        <h1>Mis Actividades</h1>
+        <p class="lead text-muted">Aquí puedes ver un resumen de tu participación en la comunidad.</p>
+    </div>
+
+    <!-- Próximas Reuniones de Interés -->
+    <div class="card shadow-sm mb-5">
+        <div class="card-header">
+            <h4 class="mb-0"><i class="bi bi-calendar-heart-fill me-2"></i>Próximas Reuniones que te Interesan</h4>
+        </div>
+        <div class="card-body">
+            {% if reuniones_interesado %}
+                <ul class="list-group list-group-flush">
+                    {% for reunion in reuniones_interesado %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ reunion.detalle }}</h6>
+                                <small class="text-muted"><i class="bi bi-geo-alt-fill me-1"></i>{{ reunion.ubicacion }}</small>
+                            </div>
+                            <span class="badge bg-primary rounded-pill">{{ reunion.fecha|date:"d M, Y - H:i" }} hrs</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    Aún no has mostrado interés en ninguna reunión futura. ¡<a href="{% url 'inicio' %}#reuniones">Explora las próximas reuniones</a>!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Historial de Asistencia -->
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h4 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historial de Asistencia</h4>
+        </div>
+        <div class="card-body">
+            {% if reuniones_asistidas %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Reunión</th>
+                                <th>Fecha</th>
+                                <th>Ubicación</th>
+                                <th>Encuesta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reunion in reuniones_asistidas %}
+                                <tr>
+                                    <td>{{ reunion.detalle }}</td>
+                                    <td>{{ reunion.fecha|date:"d/m/Y" }}</td>
+                                    <td>{{ reunion.ubicacion }}</td>
+                                    <td>
+                                        {% if reunion.encuesta and reunion.encuesta.id not in encuestas_respondidas_ids %}
+                                            <a href="{% url 'perfil' %}" class="btn btn-warning btn-sm">Responder</a>
+                                        {% else %}
+                                            <span class="badge bg-success">Completada</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-secondary mb-0">
+                    Aún no has asistido a ninguna reunión. ¡Esperamos verte pronto!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</main>
+{% endblock %}

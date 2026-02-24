@@ -1,0 +1,148 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Interesados</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+        }
+        .accordion-button:not(.collapsed) {
+            background-color: #e7f1ff;
+            color: #052c65;
+            box-shadow: inset 0 -1px 0 rgba(0,0,0,.125);
+        }
+        .avatar-placeholder {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #0d6efd;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+    </style>
+</head>
+<body>
+<header class="p-3 shadow-sm d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center">
+        <img src="{% static 'img/logo.jpg' %}" class="img-fluid rounded me-2" alt="Logo" style="height:50px;">
+        <span class="fw-bold fs-5">Gestión de Interesados</span>
+    </div>
+    <a href="{% url 'panel-admin:panel_admin' %}" class="btn btn-outline-light">Volver al Panel</a>
+</header>
+
+<main class="container my-5">
+    <h1 class="text-center mb-4">Interesados en Próximas Reuniones</h1>
+
+    {% if reuniones.exists %}
+    <div class="accordion" id="accordionInteresados">
+        {% for reunion in reuniones %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading{{ reunion.id }}">
+                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ reunion.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse{{ reunion.id }}">
+                    <div class="flex-grow-1">
+                        <strong>{{ reunion.detalle }}</strong>&nbsp;-&nbsp;<span class="text-muted">{{ reunion.fecha|date:"d/m/Y" }}</span>
+                    </div>
+                    <span class="badge bg-primary rounded-pill me-3">{{ reunion.interesados.count }} interesado(s)</span>
+                </button>
+            </h2>
+            <div id="collapse{{ reunion.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading{{ reunion.id }}" data-bs-parent="#accordionInteresados">
+                <div class="accordion-body">
+                    {% if reunion.interesados.exists %}
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-secondary btn-sm copy-emails-btn" data-reunion-id="{{ reunion.id }}">
+                                <i class="bi bi-clipboard-check me-1"></i> Copiar Correos
+                            </button>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            {% for interesado in reunion.interesados.all %}
+                            <li class="list-group-item d-flex align-items-center">
+                                <div class="avatar-placeholder bg-secondary">
+                                    {{ interesado.nombre|first|upper }}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <span class="fw-bold">{{ interesado.nombre }} {{ interesado.apellido }}</span>
+                                    <small class="d-block text-muted email-address-{{ reunion.id }}">{{ interesado.email }}</small>
+                                </div>
+                                <span class="badge bg-light text-dark border">{{ interesado.rubro }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-center text-muted">Aún no hay nadie interesado en esta reunión.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+        <div class="alert alert-info text-center">No hay reuniones próximas para mostrar.</div>
+    {% endif %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const copyButtons = document.querySelectorAll('.copy-emails-btn');
+
+    copyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const reunionId = this.dataset.reunionId;
+            const emailElements = document.querySelectorAll(`.email-address-${reunionId}`);
+            const emails = Array.from(emailElements).map(el => el.textContent.trim()).join(', ');
+
+            if (emails) {
+                // Fallback para copiar en portapapeles, más compatible.
+                const textarea = document.createElement('textarea');
+                textarea.value = emails;
+                textarea.style.position = 'absolute';
+                textarea.style.left = '-9999px'; // Moverlo fuera de la pantalla
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showCopyFeedback(this, true);
+                } catch (err) {
+                    console.error('Error al copiar los correos:', err);
+                    showCopyFeedback(this, false);
+                }
+                document.body.removeChild(textarea);
+            } else {
+                alert('No hay correos para copiar.');
+            }
+        });
+    });
+
+    function showCopyFeedback(button, success) {
+        const originalText = button.innerHTML;
+        if (success) {
+            button.innerHTML = '<i class="bi bi-check-lg me-1"></i> ¡Copiado!';
+            button.classList.add('btn-success');
+            button.classList.remove('btn-secondary');
+        } else {
+            button.innerHTML = '<i class="bi bi-x-lg me-1"></i> Error';
+            button.classList.add('btn-danger');
+            button.classList.remove('btn-secondary');
+        }
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success', 'btn-danger');
+            button.classList.add('btn-secondary');
+        }, 2000);
+    }
+});
+</script>
+</body>
+</html>

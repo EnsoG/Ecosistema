@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="es">
+{% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcosistemaLA</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        html, body {
+            height: 100%;
+        }
+        body { 
+            font-family: 'Poppins', Arial, sans-serif; background-color: #f4f7f6;
+            display: flex; flex-direction: column;
+        }
+        /* El header se elimina para usar el navbar de Bootstrap */
+        .testimonial {
+            position: relative;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px; /* Aumentado el padding para más espacio interno */
+            margin-bottom: 15px;
+            background-color: #fff;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Para contener el pseudo-elemento */
+        }
+        .testimonial::before {
+            content: '“';
+            position: absolute;
+            top: -20px;
+            left: 5px;
+            font-size: 100px;
+            color: #e9ecef;
+            z-index: 0;
+            line-height: 1;
+        }
+        .testimonial-body {
+            font-style: italic;
+            color: #495057;
+            flex-grow: 1;
+            position: relative; /* Para que esté sobre el pseudo-elemento */
+        }
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+        }
+        main {
+            flex: 1 0 auto; /* Permite que el contenido principal crezca y ocupe el espacio disponible */
+        }
+        footer { background: linear-gradient(to right, #8EE000, #0096A7); color: white; padding: 30px 20px; flex-shrink: 0; /* Evita que el footer se encoja */
+        }
+        footer a { color: white; text-decoration: none; } 
+        footer h6 { margin-bottom: 10px; }
+        
+        /* Estilos para la sección de bienvenida (carrusel) */
+        #heroCarousel {
+            margin-top: 1.5rem;
+            margin-bottom: 3rem;
+            border-radius: 15px;
+            overflow: hidden; /* Para que las imágenes no se salgan del borde redondeado */
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        .hero-section {
+            height: 450px; /* Altura fija para el carrusel */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            background-size: cover;
+            background-position: center;
+            text-align: center;
+        }
+        /* Nueva forma: Clases para cada fondo del carrusel */
+        .hero-slide-1 {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url("{% static 'img/biobio_background.jpg' %}");
+        }
+        .hero-slide-2 {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url("{% static 'img/biobio_background2.jpg' %}");
+        }
+        /* --- Fin de la nueva forma --- */
+
+        .hero-content {
+            max-width: 800px;
+            padding: 2rem;
+        }
+        .hero-content h1 {
+            font-weight: 700;
+            font-size: 2.8rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+        }
+        .hero-content p {
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        .carousel-item {
+            transition: transform 1s ease-in-out; /* Transición más suave */
+        }
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            padding: 1.2rem;
+        }
+
+        /* Estilos de las tarjetas de reunión */
+        .reunion-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            background-color: #fff;
+            height: 100%; /* Asegura que todas las tarjetas en una fila tengan la misma altura */
+        }
+        .reunion-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        .reunion-card-img {
+            height: 200px; 
+            object-fit: cover; 
+            border-top-left-radius: 12px; 
+            border-top-right-radius: 12px;
+        }
+        .card-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .reunion-countdown {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            z-index: 2;
+        }
+
+        /* Estilos para la lista de detalles en el modal */
+        .modal-details {
+            list-style: none;
+            padding-left: 0;
+        }
+        .modal-details li { margin-bottom: 0.75rem; }
+        
+
+        /* Estilos mejorados para los modales */
+        .modal-content {
+            border-radius: 15px;
+            border: none;
+        }
+        .modal-header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+        }
+        .modal-header .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        /* Estilos para la nueva sección de estadísticas y "cómo funciona" */
+        .features-section {
+            background-color: #ffffff;
+            border-radius: 15px;
+            padding: 2.5rem 2rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+        }
+        .feature-item, .stat-item {
+            text-align: center;
+        }
+        .feature-item i {
+            font-size: 2.5rem;
+            color: #0096A7;
+            margin-bottom: 1rem;
+        }
+        .stat-item .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #8EE000;
+        }
+        .stat-item .stat-label {
+            font-size: 1rem;
+            color: #6c757d;
+        }
+        .cta-section {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            padding: 2.5rem;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .cta-section h3 {
+            font-weight: 700;
+        }
+        .cta-section .btn-cta {
+            background-color: white;
+            color: #0096A7;
+            font-weight: bold;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+        }
+
+        /* Estilos para las burbujas de chat de soporte (movido aquí) */
+        .chat-bubble-admin { background-color: #dcf8c6; }
+        .chat-bubble-user { background-color: #e9ecef; }
+
+        /* --- INICIO: Estilos para Header Interactivo --- */
+        @media (min-width: 992px) { /* Solo se aplica en pantallas grandes (PC) */
+            /* Estilo para la búsqueda colapsable */
+            .search-form-interactive {
+                position: relative;
+            }
+            .search-form-interactive .form-control {
+                width: 0;
+                padding: .375rem 0;
+                border: none;
+                opacity: 0;
+                transition: width 0.4s ease-in-out, opacity 0.3s ease-in-out, padding 0.4s ease-in-out;
+            }
+            .search-form-interactive.active .form-control {
+                width: 200px; /* Ancho del buscador al expandirse */
+                padding: .375rem .75rem;
+                opacity: 1;
+                border: 1px solid #ced4da;
+            }
+
+            /* Estilo para el perfil interactivo */
+            .profile-interactive .profile-name {
+                max-width: 0;
+                overflow: hidden;
+                opacity: 0;
+                transition: max-width 0.4s ease-in-out, opacity 0.3s ease-in-out, margin-left 0.4s ease-in-out;
+                white-space: nowrap;
+                margin-left: 0;
+            }
+            .profile-interactive:hover .profile-name {
+                max-width: 150px; /* Ancho para el nombre */
+                opacity: 1;
+                margin-left: 0.5rem; /* Espacio entre la imagen y el nombre */
+            }
+        }
+
+        /* --- INICIO: Estilos para la Barra de Navegación Inferior Móvil --- */
+        .mobile-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            background: #ffffff;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            border-top: 1px solid #e9ecef;
+        }
+        .mobile-nav-link {
+            color: #6c757d; /* Color gris para íconos y texto */
+        }
+        /* --- FIN: Estilos para Header Interactivo --- */
+
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(to right, #8EE000, #0096A7); box-shadow: 0 2px 5px rgba(0,0,0,0.1);" id="mainNav">
+    <div class="container">
+        <!-- Logo y nombre -->
+        <a class="navbar-brand d-flex align-items-center" href="{% url 'inicio' %}">
+            <img src="{% static 'img/logo.jpg' %}" class="img-fluid rounded me-2" alt="Logo EcosistemaLA" style="height:50px;">
+            <div>
+                <span class="fw-bold fs-5 fs-sm-6 d-block">EcosistemaLA</span>
+                <small class="d-none d-sm-block">Impulsando el ecosistema emprendedor</small>
+            </div>
+        </a>
+        
+        <!-- Ocultamos el botón de hamburguesa en todas las vistas -->
+        <button class="navbar-toggler d-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="mainNavbar">
+            <ul class="navbar-nav ms-auto align-items-center">
+                <!-- El bloque de acciones para móvil se ha movido fuera del navbar -->
+                {% if usuario %} 
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'directorio_miembros' %}">Explorar</a>
+                </li>
+
+                <li class="nav-item d-lg-none">
+                    <form action="{% url 'directorio_miembros' %}" method="GET" class="d-flex p-2">
+                        <input type="text" name="q" class="form-control" placeholder="Buscar miembros...">
+                        <button class="btn btn-light ms-2" type="submit"><i class="bi bi-search"></i></button>
+                    </form>
+                </li>
+                <li class="nav-item d-none d-lg-block">
+                    <form action="{% url 'directorio_miembros' %}" method="GET" class="d-flex align-items-center search-form-interactive" id="interactiveSearch">
+                        <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar miembros...">
+                        <button class="btn btn-light ms-2" type="button" id="searchToggleBtn"><i class="bi bi-search"></i></button>
+                    </form>
+                </li>
+                <li class="nav-item d-none d-lg-block ms-2">
+                    <button class="btn btn-light" type="button" data-bs-toggle="modal" data-bs-target="#qrModal" title="Mi QR">
+                        <i class="bi bi-qr-code"></i>
+                    </button>
+                </li>
+
+                <!-- Botón Panel Admin (si el usuario es admin o ayudante) -->
+                {% if usuario.es_admin or usuario.es_ayudante %}
+                <li class="nav-item d-none d-lg-block ms-2">
+                    <a href="{% url 'panel-admin:panel_admin' %}" class="btn btn-warning"><i class="bi bi-shield-lock-fill me-1"></i> Admin</a>
+                </li>
+                {% endif %}
+
+                <li class="nav-item dropdown ms-lg-2">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center profile-interactive" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {% if usuario.foto %}
+                            <img src="{{ usuario.foto.url|urlencode }}" alt="Usuario" class="rounded-circle" style="width:35px; height:35px; object-fit:cover;">
+                        {% else %}
+                            <img src="{% static 'img/predeterminado.png' %}" alt="Usuario" class="rounded-circle" style="width:35px; height:35px; object-fit:cover;">
+                        {% endif %}
+                        <span class="profile-name">{{ usuario.nombre }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="{% url 'perfil' %}"><i class="bi bi-person-fill me-2"></i>Mi Perfil</a></li>
+                        
+                        {% if usuario.es_admin or usuario.es_ayudante %}
+                        <li class="d-lg-none"><a class="dropdown-item" href="{% url 'panel-admin:panel_admin' %}"><i class="bi bi-shield-lock-fill me-2"></i>Panel Admin</a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="{% url 'mis_reuniones' %}"><i class="bi bi-calendar-check-fill me-2"></i>Mis Actividades</a></li>
+                        <li><a class="dropdown-item" href="{% url 'crear_ticket_soporte' %}"><i class="bi bi-headset me-2"></i>Soporte</a></li>
+                        <li><a class="dropdown-item" href="{% url 'configuracion' %}"><i class="bi bi-gear-fill me-2"></i>Configuración</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                    <li class="nav-item d-none d-lg-block"><a href="{% url 'registro' %}" class="btn btn-light">Regístrate</a></li>
+                    <li class="nav-item ms-2 d-none d-lg-block"><a href="{% url 'login' %}" class="btn btn-outline-light">Iniciar Sesión</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- ======================================================= -->
+<!-- = INICIO: Barra de Navegación Inferior para Móviles    = -->
+<!-- ======================================================= -->
+<nav class="d-lg-none mobile-bottom-nav">
+    <div class="d-flex justify-content-around p-2">
+        {% if usuario %}
+            <!-- Vista para usuario logueado -->
+            <a href="{% url 'inicio' %}" class="text-center text-decoration-none mobile-nav-link">
+                <i class="bi bi-house-door-fill fs-4"></i>
+                <small class="d-block">Inicio</small>
+            </a>
+            <a href="{% url 'directorio_miembros' %}" class="text-center text-decoration-none mobile-nav-link">
+                <i class="bi bi-people-fill fs-4"></i>
+                <small class="d-block">Explorar</small>
+            </a>
+            <a href="#" class="text-center text-decoration-none mobile-nav-link" data-bs-toggle="modal" data-bs-target="#qrModal">
+                <i class="bi bi-qr-code-scan fs-4"></i>
+                <small class="d-block">Mi QR</small>
+            </a>
+            <a href="{% url 'mis_reuniones' %}" class="text-center text-decoration-none mobile-nav-link">
+                <i class="bi bi-calendar-check-fill fs-4"></i>
+                <small class="d-block">Actividad</small>
+            </a>
+            <a href="{% url 'perfil' %}" class="text-center text-decoration-none mobile-nav-link">
+                <i class="bi bi-person-circle fs-4"></i>
+                <small class="d-block">Perfil</small>
+            </a>
+        {% else %}
+            <!-- Vista para visitante -->
+            <a href="{% url 'login' %}" class="btn btn-outline-success flex-grow-1 me-2">Iniciar Sesión</a>
+            <a href="{% url 'registro' %}" class="btn btn-success flex-grow-1 fw-bold">Regístrate</a>
+        {% endif %}
+    </div>
+</nav>
+<!-- ======================================================= -->
+<!-- = FIN: Barra de Navegación Inferior para Móviles      = -->
+<!-- ======================================================= -->
+
+{% block contenido %}
+<main class="container">
+    {% if messages %}
+        <div class="mt-3">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+    
+    <!-- Carrusel de Bienvenida -->
+    <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="7000">
+        <div class="carousel-inner">
+            <!-- Primer Slide -->
+            <div class="carousel-item active">
+                <div class="hero-section hero-slide-1">
+                    <div class="hero-content">
+                        <h1>¿Qué es EcosistemaLA? </h1>
+                        <p class="lead mt-3">
+                            Una comunidad de emprendedores, estudiantes y profesionales comprometidos con el desarrollo de un ecosistema local atractivo en la Provincia de Biobío, impulsando la innovación y la colaboración.
+                        </p>
+                        <a href="https://ecosistemala.cl/" target="_blank" class="btn btn-outline-light btn-lg mt-3">Visita nuestra página oficial</a>
+                    </div>
+                </div>
+            </div>
+            <!-- Segundo Slide -->
+            <div class="carousel-item">
+                <div class="hero-section hero-slide-2">
+                    <div class="hero-content">
+                        <h1>La Provincia de Biobío, una joya aún sin explorar</h1>
+                        <p class="lead mt-3">
+                            Como puerta al sur de Chile, conecta tres regiones clave. Su capital, Los Ángeles, es un polo de crecimiento con una vibrante comunidad de emprendedores, estudiantes y profesionales.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Siguiente</span>
+        </button>
+    </div>
+
+    <!-- Sección de Próximas Reuniones (Movida aquí para darle prioridad) -->
+    <div class="row g-4 mt-4">
+        <div class="col-12">
+            <h2 class="text-center mb-4">Próximas Reuniones</h2>
+            <div class="row g-4">
+                {% for reunion in reuniones %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="card reunion-card" data-bs-toggle="modal" data-bs-target="#reunionModal{{ reunion.id }}">
+                        {% if reunion.dias_restantes is not None %}
+                            <div class="reunion-countdown">
+                                <i class="bi bi-clock-history me-1"></i>
+                                {% if reunion.dias_restantes == 0 %}Hoy{% elif reunion.dias_restantes == 1 %}Mañana{% else %}Faltan {{ reunion.dias_restantes }} días{% endif %}
+                            </div>
+                        {% endif %}
+                        {% if reunion.imagen %}
+                        <img src="{{ reunion.imagen.url }}" class="card-img-top reunion-card-img" alt="{{ reunion.detalle }}">
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ reunion.detalle }}</h5>
+                            <p class="card-text text-muted flex-grow-1">{{ reunion.descripcion|truncatewords:25 }}</p>
+                            <div class="mt-auto">
+                                <hr>
+                                <ul class="list-unstyled text-muted small">
+                                    <li><i class="bi bi-calendar-event me-2 text-primary"></i>{{ reunion.fecha|date:"d \d\e F, Y - H:i" }} hrs.</li>
+                                    <li class="mt-2"><i class="bi bi-geo-alt-fill me-2 text-primary"></i>
+                                        {{ reunion.ubicacion }}
+                                        {% if reunion.direccion %}<br><span class="ms-4">{{ reunion.direccion }}</span>{% endif %}
+                                    </li>
+                                </ul>
+                                {% if usuario %}
+                                    {% if usuario in reunion.asistentes.all %}
+                                        <button class="btn btn-success w-100" disabled><i class="bi bi-patch-check-fill me-1"></i> Asistencia Confirmada</button>
+                                    {% elif usuario in reunion.interesados.all %}
+                                        <button class="btn btn-outline-danger w-100 toggle-interes-btn"
+                                                data-reunion-id="{{ reunion.id }}"
+                                                data-action-url="{% url 'toggle_interes' reunion.id %}">
+                                            <i class="bi bi-x-circle-fill me-1"></i> Quitar interés
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-primary w-100 toggle-interes-btn"
+                                                data-reunion-id="{{ reunion.id }}"
+                                                data-action-url="{% url 'toggle_interes' reunion.id %}">
+                                            <i class="bi bi-hand-thumbs-up-fill me-1"></i> Quiero asistir
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12 text-center">
+                    <div class="alert alert-info text-center">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        No hay reuniones programadas por el momento.
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales para cada reunión -->
+    {% for reunion in reuniones %}
+    <div class="modal fade" id="reunionModal{{ reunion.id }}" tabindex="-1" aria-labelledby="reunionModalLabel{{ reunion.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reunionModalLabel{{ reunion.id }}">{{ reunion.detalle }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    {% if reunion.imagen %}
+                        <div class="text-center mb-4">
+                            <img src="{{ reunion.imagen.url }}" class="img-fluid rounded shadow-sm" style="max-height: 300px;" alt="{{ reunion.detalle }}">
+                        </div>
+                    {% endif %}
+                    <p>{{ reunion.descripcion }}</p>
+                    <hr class="my-4">
+                    <ul class="modal-details">
+                        <li><i class="bi bi-calendar-event me-2 text-success"></i><strong>Fecha:</strong> {{ reunion.fecha|date:"l, d \d\e F, Y" }} a las {{ reunion.fecha|date:"H:i" }} hrs.</li>
+                        <li><i class="bi bi-geo-alt-fill me-2 text-success"></i><strong>Lugar:</strong> {{ reunion.ubicacion }}</li>
+                        {% if reunion.direccion %}<li><i class="bi bi-signpost-split-fill me-2 text-success"></i><strong>Dirección:</strong> {{ reunion.direccion }}</li>{% endif %}
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    {% if usuario %}
+                        {% if usuario in reunion.asistentes.all %}
+                            <button class="btn btn-success" disabled><i class="bi bi-patch-check-fill me-1"></i> Asistencia Confirmada</button>
+                        {% elif usuario in reunion.interesados.all %}
+                            <button class="btn btn-outline-danger toggle-interes-btn"
+                                    data-reunion-id="{{ reunion.id }}"
+                                    data-action-url="{% url 'toggle_interes' reunion.id %}">
+                                <i class="bi bi-x-circle-fill me-1"></i> Quitar interés
+                            </button>
+                        {% else %}
+                            <button class="btn btn-primary toggle-interes-btn"
+                                    data-reunion-id="{{ reunion.id }}"
+                                    data-action-url="{% url 'toggle_interes' reunion.id %}">
+                                <i class="bi bi-hand-thumbs-up-fill me-1"></i> Quiero asistir
+                            </button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not usuario %}
+    <hr class="my-5 opacity-25">
+    <!-- Nueva Sección: Cómo Funciona y Estadísticas -->
+    <div class="features-section">
+        <div class="row gy-4 align-items-center">
+            <div class="col-12 text-center mb-4">
+                <h2>Únete a la Comunidad</h2>
+                <p class="lead text-muted">Participar es muy fácil. Sigue estos simples pasos.</p>
+            </div>
+            <!-- Pasos -->
+            <div class="col-md-4 feature-item">
+                <i class="bi bi-person-plus-fill"></i>
+                <h5 class="fw-bold">1. Regístrate</h5>
+                <p>Crea tu perfil para conectar con otros profesionales y emprendedores.</p>
+            </div>
+            <div class="col-md-4 feature-item">
+                <i class="bi bi-calendar-check-fill"></i>
+                <h5 class="fw-bold">2. Explora Reuniones</h5>
+                <p>Revisa nuestro calendario y muestra interés en los eventos que te gusten.</p>
+            </div>
+            <div class="col-md-4 feature-item">
+                <i class="bi bi-people-fill"></i>
+                <h5 class="fw-bold">3. Participa y Colabora</h5>
+                <p>Asiste a las reuniones, comparte tus ideas y crea nuevas oportunidades.</p>
+            </div>
+            <!-- Estadísticas -->
+            <div class="col-12"><hr class="my-4"></div>
+            <div class="col-md-4 stat-item">
+                <div class="stat-number">{{ total_usuarios }}</div>
+                <div class="stat-label">Miembros Activos</div>
+            </div>
+            <div class="col-md-4 stat-item">
+                <div class="stat-number">{{ total_reuniones }}</div>
+                <div class="stat-label">Reuniones Realizadas</div>
+            </div>
+            <div class="col-md-4 stat-item">
+                <div class="stat-number">{{ testimonios.count }}</div>
+                <div class="stat-label">Testimonios Compartidos</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <hr class="my-5 opacity-25">
+
+    <div class="row g-4 mb-5">
+        <!-- Sección de Testimonios Reorganizada -->
+        <div class="col-12">
+            <h2 class="text-center mb-4">¿Qué Dice Nuestra Comunidad?</h2>
+            {% if testimonios %}
+            <div id="testimonialCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    {% for testimonio in testimonios %}
+                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                        <div class="testimonial shadow-sm mx-auto" style="max-width: 700px;">
+                            <p class="testimonial-body">"{{ testimonio.comentarios }}"</p>
+                            <hr>
+                            <div class="testimonial-author">
+                                {% if testimonio.usuario.foto %}
+                                <img src="{{ testimonio.usuario.foto.url }}" alt="Foto de {{ testimonio.usuario.nombre }}" class="rounded-circle me-3" style="width: 45px; height: 45px; object-fit: cover;">
+                                {% else %} 
+                                <img src="{% static 'img/predeterminado.png' %}" alt="Sin foto" class="rounded-circle me-3" style="width: 45px; height: 45px; object-fit: cover;">
+                                {% endif %}
+                                <div>
+                                    <strong class="d-block">{{ testimonio.usuario.nombre }} {{ testimonio.usuario.apellido }}</strong>
+                                    <small class="text-muted">{{ testimonio.usuario.get_rubro_real_display }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Anterior</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Siguiente</span>
+                </button>
+            </div>
+            {% else %}
+            <div class="alert alert-secondary text-center">Aún no hay testimonios destacados.</div>
+            {% endif %}
+        </div>
+
+    </div>
+</main>
+{% endblock contenido %}
+
+{% block scripts %}
+<script id="page-specific-scripts">
+document.addEventListener('DOMContentLoaded', function () {
+    // --- Lógica para la búsqueda interactiva en PC ---
+    const searchForm = document.getElementById('interactiveSearch');
+    const searchToggleBtn = document.getElementById('searchToggleBtn');
+    const searchInput = searchForm ? searchForm.querySelector('input') : null;
+
+    if (searchToggleBtn && searchInput) {
+        searchToggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            // Si el formulario ya está activo y tiene texto, lo envía. Si no, lo activa/desactiva.
+            if (searchForm.classList.contains('active') && searchInput.value.trim() !== '') {
+                searchForm.submit();
+            } else {
+                searchForm.classList.toggle('active');
+                if (searchForm.classList.contains('active')) {
+                    searchInput.focus();
+                }
+            }
+        });
+    }
+
+    // --- Lógica para los botones de interés en reuniones ---
+        // Obtenemos el token CSRF del cookie para las peticiones POST
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        document.querySelectorAll('.toggle-interes-btn').forEach(button => {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                const reunionId = this.dataset.reunionId;
+                const url = this.dataset.actionUrl;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json'
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Buscamos todos los botones para la misma reunión (en la tarjeta y en el modal)
+                    document.querySelectorAll(`.toggle-interes-btn[data-reunion-id="${reunionId}"]`).forEach(btn => {
+                        if (data.status === 'added') {
+                            btn.classList.remove('btn-primary');
+                            btn.classList.add('btn-outline-danger');
+                            btn.innerHTML = '<i class="bi bi-x-circle-fill me-1"></i> Quitar interés';
+                        } else if (data.status === 'removed') {
+                            btn.classList.remove('btn-outline-danger');
+                            btn.classList.add('btn-primary');
+                            btn.innerHTML = '<i class="bi bi-hand-thumbs-up-fill me-1"></i> Quiero asistir';
+                        }
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+    });
+</script>
+{% endblock scripts %}
+
+<!-- Scripts (movido aquí para que se cargue en todas las plantillas hijas) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<footer class="mt-5">
+    <div class="container">
+        <div class="row align-items-center mb-3">
+            <div class="col-md-6 text-center text-md-start mb-3 mb-md-0">
+                <h5>EcosistemaLA</h5>
+                <p class="mb-0">Impulsando el ecosistema emprendedor del Biobío</p>
+            </div>
+            <div class="col-md-6 text-center text-md-end">
+                <a href="https://www.instagram.com/ecosistema.la/" target="_blank" class="ms-2">Instagram</a>
+                {% if usuario %}| <a href="{% url 'crear_ticket_soporte' %}" class="ms-2">Soporte</a>{% endif %}
+            </div>
+        </div>
+        <div class="text-center mt-4 border-top border-white border-opacity-25 pt-3">
+            <small>&copy; 2025 EcosistemaLA. Todos los derechos reservados.</small>
+        </div>
+    </div>
+</footer>
+
+<!-- Modal QR (traído desde perfil.html) -->
+{% if usuario %}
+<div class="modal fade" id="qrModal" tabindex="-1" aria-labelledby="qrModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center">
+      <div class="modal-header">
+        <h5 class="modal-title" id="qrModalLabel">Tu Código QR de Asistencia</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted small">Muestra este código en el acceso del evento para registrar tu asistencia de forma rápida.</p>
+        {% if usuario.qr_code %}
+            <img src="{{ usuario.qr_code.url }}" alt="Código QR de {{ usuario.nombre }}" class="img-fluid rounded mb-3" style="max-width: 250px;" id="qrImage">
+            <h5 class="fw-bold">¡Escanéame!</h5>
+            <p>{{ usuario.nombre }} {{ usuario.apellido }}</p>
+            <a href="{{ usuario.qr_code.url }}" class="btn btn-success" download="qr_ecosistemala_{{ usuario.rut }}.png">
+                <i class="bi bi-download me-1"></i> Descargar QR
+            </a>
+        {% else %}
+            <p class="alert alert-warning">Tu código QR aún no ha sido generado. Por favor, contacta a soporte.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+</body>
+</html>

@@ -1,0 +1,55 @@
+{% extends 'inicio.html' %}
+
+{% block contenido %}
+<main class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Ticket #{{ ticket.id }}: {{ ticket.asunto }}</h5>
+                    <span class="badge bg-{% if ticket.estado == 'abierto' %}primary{% elif ticket.estado == 'en_progreso' %}warning text-dark{% else %}secondary{% endif %}">{{ ticket.get_estado_display }}</span>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-3">Conversación</h6>
+                    <div class="chat-window border rounded p-3 mb-3" style="height: 400px; overflow-y: auto; background-color: #f8f9fa;">
+                        {% for respuesta in ticket.respuestas.all %}
+                            <div class="d-flex mb-3 {% if respuesta.usuario.es_admin %}justify-content-start{% else %}justify-content-end{% endif %}">
+                                <div class="p-2 rounded {% if respuesta.usuario.es_admin %}chat-bubble-admin{% else %}chat-bubble-user{% endif %}" style="max-width: 80%;">
+                                    {% if respuesta.imagen %}
+                                        <a href="{{ respuesta.imagen.url }}" target="_blank">
+                                            <img src="{{ respuesta.imagen.url }}" class="img-fluid rounded mb-2" style="max-height: 200px;">
+                                        </a>
+                                    {% endif %}
+                                    {% if respuesta.mensaje %}
+                                        <p class="mb-1">{{ respuesta.mensaje|linebreaksbr }}</p>
+                                    {% endif %}
+                                    <small class="text-muted d-block text-end">{{ respuesta.fecha_creacion|date:"d/m/y H:i" }} - {{ respuesta.usuario.nombre }}</small>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted text-center">No hay respuestas en este ticket todavía.</p>
+                        {% endfor %}
+                    </div>
+
+                    {% if ticket.estado != 'cerrado' %}
+                    <form method="POST" enctype="multipart/form-data" class="mt-3">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            {{ respuesta_form.mensaje }}
+                            <label for="{{ respuesta_form.imagen.id_for_label }}" class="btn btn-outline-secondary" type="button"><i class="bi bi-paperclip"></i></label>
+                            {{ respuesta_form.imagen }}
+                        </div>
+                        <button type="submit" class="btn btn-success mt-3 w-100">Enviar Respuesta</button>
+                    </form>
+                    {% else %}
+                    <div class="alert alert-secondary text-center">Este ticket ha sido cerrado y ya no se pueden añadir más respuestas.</div>
+                    {% endif %}
+                </div>
+                <div class="card-footer text-end">
+                    <a href="{% url 'mis_tickets' %}" class="btn btn-secondary">Volver a Mis Tickets</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

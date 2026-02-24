@@ -1,0 +1,408 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruleta de Sorteos - EcosistemaLA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/sweetalert2.min.css' %}">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+        }
+        .btn-primary {
+            background-color: #0096A7;
+            border-color: #0096A7;
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+        }
+        #roulette-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+            margin: auto;
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2));
+        }
+        #roulette-container::after { /* Círculo central con logo */
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 18%; height: 18%; background-color: #fff; border-radius: 50%;
+            background-image: url("{% static 'img/logo.jpg' %}"); background-size: 80%; background-position: center; background-repeat: no-repeat;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); z-index: 6;
+        }
+        #roulette-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: transform 8s cubic-bezier(0.1, 0.5, 0.2, 1); /* Animación más larga y suave */
+        }
+        #roulette-pointer {
+            position: absolute;
+            top: -15px; /* Posicionado arriba */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 25px solid transparent;
+            border-right: 25px solid transparent;
+            border-top: 40px solid #8EE000; /* Color del puntero actualizado */
+            z-index: 10;
+            filter: drop-shadow(0 4px 5px rgba(0,0,0,0.3));
+        }
+        .btn-spin {
+            background-color: #8EE000;
+            border-color: #8EE000;
+            color: white;
+            font-weight: bold;
+            padding: 15px 0;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(142, 224, 0, 0.4);
+        }
+        .btn-spin:hover {
+            background-color: #76c400;
+            box-shadow: 0 6px 15px rgba(142, 224, 0, 0.6);
+            color: white;
+        }
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        /* Estilos para el Modal del Ganador */
+        .winner-modal .modal-content {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .winner-modal .modal-header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            border-bottom: none;
+        }
+        .winner-modal .winner-photo {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 5px solid white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin-top: -75px; /* Mitad de la altura para que sobresalga */
+        }
+    </style>
+</head>
+<body>
+
+<header class="p-3 shadow-sm d-flex justify-content-between align-items-center">
+    <div>
+        <h4 class="mb-0">Ruleta de Sorteos</h4>
+        <small class="text-white-50">Panel de Administración</small>
+    </div>
+    <a href="{% url 'panel-admin:panel_admin' %}" class="btn btn-outline-light">Volver al Panel</a>
+</header>
+
+<main class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-12">
+                            <label for="reunion-filter" class="form-label fw-bold">Seleccionar participantes:</label>
+                            <select id="reunion-filter" class="form-select">
+                                <option value="">-- Por favor, elige una opción --</option>
+                                <option value="todos">Todos los Usuarios</option>
+                                <optgroup label="Asistentes por Reunión">
+                                    {% for reunion in reuniones %}
+                                        <option value="{{ reunion.id }}">{{ reunion.detalle }} ({{ reunion.fecha|date:"d/m/Y" }})</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-lg-5 text-center">
+                    <div id="roulette-wrapper" class="mx-auto" style="max-width: 500px;">
+                        <div id="roulette-container">
+                            <div id="roulette-pointer"></div>
+                            <canvas id="roulette-canvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 d-grid">
+                        <button id="spin-btn" class="btn btn-spin" disabled><i class="bi bi-play-fill"></i> ¡GIRAR!</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial de Ganadores -->
+            <div class="card shadow-lg mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>Historial de Ganadores</h5>
+                    <button id="clear-history-btn" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash3-fill me-1"></i>Limpiar</button>
+                </div>
+                <div class="card-body">
+                    <ul id="winner-history-list" class="list-group list-group-flush">
+                        <li id="no-history-msg" class="list-group-item text-muted text-center">Aún no hay ganadores en esta sesión.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="confetti-container" id="confetti-container"></div>
+
+<!-- Modal para mostrar al ganador -->
+<div class="modal fade winner-modal" id="winnerModal" tabindex="-1" aria-labelledby="winnerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content text-center">
+            <div class="modal-header justify-content-center">
+                <h4 class="modal-title fw-bold" id="winnerModalLabel">¡Tenemos un Ganador!</h4>
+            </div>
+            <div class="modal-body p-4">
+                <img src="" id="winner-photo" class="winner-photo" alt="Foto del ganador">
+                <h2 class="mt-3 mb-1" id="winner-name" style="color: #0096A7;"></h2>
+                <p class="text-muted fs-5" id="winner-rubro"></p>
+                <p class="mt-3">¡Muchas felicidades por haber ganado el sorteo!</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pb-4">
+                <button type="button" class="btn btn-lg btn-success" data-bs-dismiss="modal">
+                    <i class="bi bi-award-fill me-2"></i>¡Genial!
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/sweetalert2.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const canvas = document.getElementById('roulette-canvas');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spin-btn');
+    const reunionFilter = document.getElementById('reunion-filter');
+    const winnerModal = new bootstrap.Modal(document.getElementById('winnerModal'));
+    const winnerHistoryList = document.getElementById('winner-history-list');
+    const noHistoryMsg = document.getElementById('no-history-msg');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+
+    let participants = [];
+    let rotation = 0;
+    let isSpinning = false;
+    let winnerHistory = [];
+    const rouletteColors = ["#8EE000", "#FFFFFF"]; // Colores corporativos para la ruleta
+    const confettiColors = ["#8EE000", "#0096A7", "#FFC107"]; // Colores para el confeti
+
+    function drawRoulette() {
+        const numSegments = participants.length;
+        if (numSegments === 0) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            return;
+        }
+        const anglePerSegment = 2 * Math.PI / numSegments;
+        const radius = canvas.width / 2;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = `bold ${Math.max(10, 20 - numSegments * 0.2)}px Arial`;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+
+        // Crear el degradado para los segmentos verdes
+        const greenGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        greenGradient.addColorStop(0, '#8EE000');
+        greenGradient.addColorStop(1, '#0096A7');
+
+        participants.forEach((participant, i) => {
+            const angle = i * anglePerSegment;
+
+            // Alternar entre el degradado y el color blanco
+            if (i % 2 === 0) {
+                ctx.fillStyle = greenGradient;
+            } else {
+                ctx.fillStyle = "#FFFFFF";
+            }
+
+            ctx.beginPath();
+            ctx.moveTo(radius, radius);
+            ctx.arc(radius, radius, radius - 5, angle, angle + anglePerSegment);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.save();
+            // Si el fondo es blanco, el texto es turquesa; si no, es blanco.
+            ctx.fillStyle = (i % 2 !== 0) ? "#0096A7" : "white";
+            ctx.translate(radius, radius);
+            ctx.rotate(angle + anglePerSegment / 2); // Nombres en el centro de cada segmento
+            ctx.fillText(participant.nombre_completo.substring(0, 15), radius / 1.7, 0); // Truncar nombre y alejarlo del centro
+            ctx.restore();
+        });
+    }
+
+    function spin() {
+        if (isSpinning || participants.length < 2) return;
+        isSpinning = true;
+        spinBtn.disabled = true;
+
+        const randomSpins = Math.floor(Math.random() * 5) + 5; // 5 to 9 full spins
+        const randomStopAngle = Math.random() * 360;
+        const totalRotation = (randomSpins * 360) + randomStopAngle;
+
+        rotation += totalRotation;
+        canvas.style.transform = `rotate(${rotation}deg)`;
+
+        setTimeout(() => {
+            const numSegments = participants.length;
+            const anglePerSegment = 360 / numSegments;
+            const finalAngle = (rotation + 90) % 360; // +90 para ajustar al puntero superior
+            const pointerAngle = 360 - finalAngle;
+            const winnerIndex = Math.floor(pointerAngle / anglePerSegment) % numSegments;
+            const winner = participants[winnerIndex];
+
+            showWinner(winner);
+            winnerHistory.push(winner);
+            updateWinnerHistory();
+            isSpinning = false;
+            spinBtn.disabled = false;
+        }, 8000); // Match CSS transition duration
+    }
+
+    function showWinner(winner) {
+        launchConfetti();
+
+        // Poblar el modal con los datos del ganador
+        document.getElementById('winner-photo').src = winner.foto_url;
+        document.getElementById('winner-name').textContent = winner.nombre_completo;
+        const winnerRubro = document.getElementById('winner-rubro');
+        winnerRubro.textContent = winner.rubro || 'Sin rubro especificado';
+
+        // Mostrar el modal
+        winnerModal.show();
+    }
+
+    function updateWinnerHistory() {
+        winnerHistoryList.innerHTML = ''; // Limpiar la lista
+
+        if (winnerHistory.length === 0) {
+            winnerHistoryList.appendChild(noHistoryMsg);
+        } else {
+            winnerHistory.forEach((winner, index) => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item d-flex align-items-center';
+                li.innerHTML = `
+                    <span class="badge bg-success me-3">${index + 1}</span>
+                    <img src="${winner.foto_url}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">${winner.nombre_completo}</div>
+                        <small class="text-muted">${winner.rubro || 'Sin rubro'}</small>
+                    </div>
+                `;
+                winnerHistoryList.appendChild(li);
+            });
+        }
+    }
+
+    async function loadParticipants() {
+        const reunionId = reunionFilter.value;
+        if (!reunionId) {
+            Swal.fire('Error', 'Por favor, selecciona un grupo de participantes.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`{% url 'panel-admin:obtener_participantes_ruleta' %}?reunion_id=${reunionId}`);
+            const data = await response.json();
+
+            if (data.error || !data.participantes) {
+                throw new Error(data.error);
+            }
+
+            participants = data.participantes || [];
+            // Limpiar historial al cargar nuevos participantes
+            winnerHistory = [];
+            updateWinnerHistory();
+
+            if (participants.length > 0) {
+                canvas.width = 500;
+                canvas.height = 500;
+                drawRoulette();
+                spinBtn.disabled = false;
+                Swal.fire({title: '¡Listo!', text: `${participants.length} participantes cargados en la ruleta.`, icon: 'success', timer: 1500, showConfirmButton: false});
+            } else {
+                spinBtn.disabled = true;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                Swal.fire('Vacío', 'No se encontraron participantes para esta selección.', 'info');
+            }
+        } catch (error) {
+            console.error('Error loading participants:', error);
+            Swal.fire('Error', 'No se pudieron cargar los participantes.', 'error');
+        } 
+    }
+
+    // --- Confetti Effect ---
+    const confettiContainer = document.getElementById('confetti-container');
+    function launchConfetti() {
+        for (let i = 0; i < 100; i++) {
+            const confetti = document.createElement('div');
+            confetti.style.position = 'absolute';
+            confetti.style.width = `${Math.random() * 10 + 5}px`;
+            confetti.style.height = `${Math.random() * 10 + 5}px`;
+            confetti.style.backgroundColor = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+            confetti.style.left = `${Math.random() * 100}vw`;
+            confetti.style.top = `${-20}px`;
+            confetti.style.animation = `fall ${Math.random() * 3 + 2}s linear forwards`;
+            confetti.style.opacity = '0';
+            confettiContainer.appendChild(confetti);
+        }
+
+        setTimeout(() => {
+            confettiContainer.innerHTML = '';
+        }, 5000);
+    }
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(${Math.random() * 720}deg);
+                opacity: 1;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    // --- End Confetti ---
+
+    spinBtn.addEventListener('click', spin);
+    reunionFilter.addEventListener('change', loadParticipants); // Carga automática al cambiar la selección
+    clearHistoryBtn.addEventListener('click', () => {
+        winnerHistory = [];
+        updateWinnerHistory();
+        Swal.fire({title: '¡Hecho!', text: 'El historial de ganadores ha sido limpiado.', icon: 'info', timer: 1500, showConfirmButton: false});
+    });
+
+    // Initial draw (empty)
+    canvas.width = 500;
+    canvas.height = 500;
+});
+</script>
+
+</body>
+</html>

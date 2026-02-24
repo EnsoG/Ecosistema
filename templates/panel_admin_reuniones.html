@@ -1,0 +1,250 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Reuniones - EcosistemaLA</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            padding: 10px 20px;
+            color: white;
+        }
+        header img {
+            height: 50px;
+        }
+        .reunion-img {
+            width: 100px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        main {
+            flex: 1;
+        }
+        footer {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+            margin-top: auto;
+        }
+        .card {
+            border-radius: 12px;
+            border: none;
+        }
+        .card-header {
+            font-weight: bold;
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            text-align: center;
+        }
+        .btn-eco {
+            background-color: #8EE000;
+            border: none;
+            color: #fff;
+        }
+        .btn-eco:hover {
+            background-color: #76c400;
+            color: #fff;
+        }
+        .table thead {
+            background-color: #8EE000;
+            color: #fff;
+        }
+        #map {
+            height: 300px;
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        .reuniones-list-container {
+            max-height: 60vh; /* Límite de altura (60% de la ventana) */
+            overflow-y: auto; /* Muestra una barra de scroll si es necesario */
+        }
+    </style>
+</head>
+<body>
+<header class="d-flex justify-content-between align-items-center shadow">
+    <div class="d-flex align-items-center">
+        <img src="{% static 'img/logo.jpg' %}" class="img-fluid rounded me-2" alt="Logo EcosistemaLA" style="height:50px;">
+        <div>
+            <span class="fw-bold fs-5 d-block">EcosistemaLA</span>
+            <small>Panel de Administración</small>
+        </div>
+    </div>
+    <div>
+        <a href="{% url 'panel-admin:panel_admin' %}" class="btn btn-outline-light">Volver al Panel</a>
+    </div>
+</header>
+
+<main class="container my-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+        <h1 class="mb-3 mb-md-0 text-center text-md-start">Gestión de Reuniones</h1>
+        <a href="{% url 'landing_reuniones' %}" class="btn btn-outline-success" target="_blank" rel="noopener">
+            <i class="bi bi-box-arrow-up-right me-1"></i> Ver landing de reuniones
+        </a>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- Formulario para crear reunión -->
+        <div class="col-lg-5 col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <h5><i class="bi bi-calendar-plus me-2"></i>Crear Nueva Reunión</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {% for field in form %}
+                            <div class="mb-3">
+                                {% if field.name == 'imprimir_etiqueta_al_asistir' %}
+                                    <div class="form-check">
+                                        {{ field }}
+                                        <label class="form-check-label" for="{{ field.id_for_label }}">
+                                            {{ field.label }}
+                                            <i class="bi bi-info-circle-fill text-primary ms-1" 
+                                               style="cursor: pointer;"
+                                               data-bs-toggle="popover" 
+                                               data-bs-trigger="hover focus"
+                                               title="Información"
+                                               data-bs-content="{{ field.help_text }}"></i>
+                                        </label>
+                                    </div>
+                                {% else %}
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {{ field }}
+                                {% endif %}
+                                {% for error in field.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                        {% endfor %}
+                        <div class="d-grid mt-3">
+                            <button type="submit" class="btn btn-eco btn-lg">
+                                <i class="bi bi-check-circle me-1"></i> Guardar Reunión
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de reuniones existentes -->
+        <div class="col-lg-7 col-md-10">
+            <div class="card shadow-lg">
+                <div class="card-header">
+                    <h5><i class="bi bi-list-ul me-2"></i>Reuniones Programadas</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="table-responsive reuniones-list-container">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Imagen</th>
+                                    <th>Detalle</th>
+                                    <th>Fecha</th>
+                                    <th>Ubicación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reunion in reuniones %}
+                                <tr>
+                                    <td>
+                                        {% if reunion.imagen %}
+                                            <img src="{{ reunion.imagen.url }}" alt="{{ reunion.detalle }}" class="reunion-img">
+                                        {% else %}
+                                            <span class="text-muted">Sin imagen</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ reunion.detalle }}</td>
+                                    <td class="text-nowrap">{{ reunion.fecha|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <span class="d-block">{{ reunion.ubicacion }}</span>
+                                        <small class="text-muted">{{ reunion.direccion }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'panel-admin:registrar_asistencia' reunion.id %}" class="btn btn-info btn-sm" title="Registrar Asistencia">
+                                            <i class="bi bi-qr-code-scan"></i>
+                                        </a>
+                                        <a href="{% url 'panel-admin:editar_reunion' reunion.id %}" class="btn btn-warning btn-sm" title="Editar">
+                                            <i class="bi bi-pencil-fill"></i>
+                                        </a>
+                                        <form action="{% url 'panel-admin:eliminar_reunion' reunion.id %}" method="POST" class="d-inline delete-form">
+                                            {% csrf_token %}
+                                            <button type="button" class="btn btn-danger btn-sm delete-btn" data-detalle="{{ reunion.detalle }}">
+                                                <i class="bi bi-trash3-fill"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">No hay reuniones programadas</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <p class="mb-0">&copy; 2025 EcosistemaLA | Todos los derechos reservados</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/sweetalert2.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Inicializar todos los popovers
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl)
+    });
+});
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            const form = this.closest('.delete-form');
+            const reunionDetalle = this.dataset.detalle;
+
+            Swal.fire({
+                title: `¿Estás seguro de eliminar la reunión "${reunionDetalle}"?`,
+                text: "¡No podrás revertir esta acción!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, ¡eliminar!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+</script>
+
+</body>
+</html>

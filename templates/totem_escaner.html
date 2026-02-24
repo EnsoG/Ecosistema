@@ -1,0 +1,307 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tótem Check-in: {{ reunion.detalle }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/sweetalert2.min.css' %}">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden; /* Evita el scroll */
+            font-family: 'Poppins', sans-serif; /* Mantenemos la fuente */
+            background-color: #f0f2f5; /* Un gris claro, más corporativo y limpio */
+            color: #495057; /* Un gris oscuro para el texto, más suave que el negro puro */
+        }
+        .totem-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .totem-header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .totem-body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            flex-grow: 1; /* Ocupa el espacio restante */
+        }
+        #video-container {
+            position: relative;
+            width: 85vw;
+            max-width: 380px; /* Un poco más pequeño */
+            border-radius: 20px; /* Bordes más redondeados */
+            overflow: hidden;
+            background-color: #000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 1px solid #dee2e6;
+        }
+        .scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.2); /* Borde interior sutil */
+        }
+        .scanner-corner {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 5px solid #8EE000; /* Color verde de la marca */
+        }
+        .scanner-corner.top-left { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+        .scanner-corner.top-right { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+        .scanner-corner.bottom-left { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+        .scanner-corner.bottom-right { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+        .pulsing-dot {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15px;
+            height: 15px;
+            background-color: #0096A7;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(0.8); opacity: 0.7; }
+            50% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+            100% { transform: translateX(-50%) scale(0.8); opacity: 0.7; }
+        }
+        #qr-video {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .exit-button {
+            position: absolute;
+            top: 15px;
+            left: -9999px; /* Oculto por defecto fuera de la pantalla */
+            z-index: 100;
+        }
+        #physical-scanner-input {
+            border: 1px solid #ced4da;
+            background-color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            height: 50px;
+            max-width: 380px;
+            width: 85vw;
+        }
+        #physical-scanner-input:focus {
+            border-color: #0096A7;
+            box-shadow: 0 0 0 0.25rem rgba(0, 150, 167, 0.25);
+        }
+        /* Estilos personalizados para SweetAlert2 */
+        .swal2-popup {
+            border-radius: 15px !important;
+            font-family: 'Poppins', sans-serif !important;
+        }
+        .swal2-title {
+            color: #333 !important;
+        }
+        .swal2-icon.swal2-success .swal2-success-line-tip,
+        .swal2-icon.swal2-success .swal2-success-line-long {
+            background-color: #8EE000 !important;
+        }
+        .swal2-confirm {
+            background-color: #0096A7 !important;
+        }
+    </style>
+</head>
+<body>
+
+<div class="totem-container position-relative">
+    <div class="totem-header">
+        <a href="{% url 'panel-admin:totem_seleccionar_reunion' %}" id="exit-button" class="btn btn-sm btn-light exit-button" title="Volver a seleccionar reunión" style="top: 20px; left: -9999px;">
+            <i class="bi bi-arrow-left-circle-fill"></i>
+        </a>
+        <img src="{% static 'img/logo.jpg' %}" alt="Logo" style="height: 50px; border-radius: 10px;" class="mb-2">
+        <h2 class="mb-0 h4">Check-in: {{ reunion.detalle }}</h2>
+    </div>
+
+    <div class="totem-body">
+        <p class="text-muted mb-4 h5">Por favor, acerca tu código QR a la cámara</p>
+
+    <div id="video-container">
+        <video id="qr-video" playsinline></video>
+        <div class="scanner-overlay">
+            <!-- Esquinas del visor -->
+            <div class="scanner-corner top-left"></div>
+            <div class="scanner-corner top-right"></div>
+            <div class="scanner-corner bottom-left"></div>
+            <div class="scanner-corner bottom-right"></div>
+            <!-- Punto de actividad -->
+            <div class="pulsing-dot"></div>
+        </div>
+    </div>
+        <canvas id="qr-canvas" class="d-none"></canvas>
+
+        <div id="scanner-status" class="mt-3 text-warning">Iniciando cámara...</div>
+
+        <form id="physical-scanner-form" class="mt-4">
+            <input type="text" id="physical-scanner-input" class="form-control text-center" placeholder="O usa un escáner de mano aquí..." autocomplete="off">
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="{% static 'js/sweetalert2.min.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    let processing = false;
+
+    function handleScan(decodedText) {
+        if (decodedText && !processing) {
+            processing = true;
+            const userId = decodedText.split('/').filter(Boolean).pop();
+
+            if (userId && !isNaN(userId)) {
+                fetch(`/panel-admin/reuniones/{{ reunion.id }}/marcar-asistencia/${userId}/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: `¡Bienvenido, ${data.asistente.nombre}!`,
+                            text: 'Tu asistencia ha sido registrada.',
+                            timer: 2500,
+                            iconColor: '#8EE000',
+                            showConfirmButton: false,
+                        });
+                        if (data.print_url) {
+                            window.open(data.print_url, '_blank');
+                        }
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+                    }
+                })
+                .catch(error => Swal.fire({ icon: 'error', title: 'Error de Conexión', text: 'No se pudo comunicar con el servidor.' }))
+                .finally(() => {
+                    setTimeout(() => { processing = false; }, 3000); // 3 segundos de espera
+                });
+            } else {
+                Swal.fire({ icon: 'warning', title: 'QR Inválido', text: 'El código no parece ser de un usuario.' });
+                setTimeout(() => { processing = false; }, 3000);
+            }
+        }
+    }
+
+    const video = document.getElementById('qr-video');
+    const canvas = document.getElementById('qr-canvas');
+    const ctx = canvas.getContext('2d');
+    const statusDiv = document.getElementById('scanner-status');
+    const physicalScannerInput = document.getElementById('physical-scanner-input');
+
+    physicalScannerInput.focus();
+    document.body.addEventListener('click', (e) => {
+        if (e.target.tagName !== 'A' && e.target.tagName !== 'BUTTON') {
+            physicalScannerInput.focus();
+        }
+    });
+
+    document.getElementById('physical-scanner-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        let decodedText = physicalScannerInput.value.trim();
+
+        // --- LÓGICA PARA EL CÓDIGO DE SALIDA ---
+        if (decodedText.toUpperCase() === 'SALIR') {
+            physicalScannerInput.value = ''; // Limpiar el input
+            Swal.fire({
+                title: 'Introducir contraseña para salir',
+                input: 'password',
+                inputPlaceholder: 'Contraseña del usuario Tótem',
+                inputAttributes: { autocapitalize: 'off', autocorrect: 'off' },
+                showCancelButton: true,
+                cancelButtonText: 'Cancelar',
+                confirmButtonText: 'Verificar',
+                showLoaderOnConfirm: true,
+                preConfirm: (password) => {
+                    return fetch("{% url 'panel-admin:totem_verify_exit' %}", {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: password })
+                    })
+                    .then(response => {
+                        if (!response.ok) { throw new Error(response.statusText); }
+                        return response.json();
+                    })
+                    .catch(error => { Swal.showValidationMessage(`La petición falló: ${error}`); });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed && result.value.status === 'ok') {
+                    document.getElementById('exit-button').style.left = '15px'; // Mostrar el botón
+                    Swal.fire('Éxito', 'Contraseña correcta. Ahora puedes volver atrás.', 'success');
+                } else if (result.isConfirmed) {
+                    Swal.fire('Error', 'Contraseña incorrecta.', 'error');
+                }
+            });
+            return; // Detener el procesamiento normal
+        }
+
+        if (decodedText) {
+            let correctedText = decodedText.replace(/Ñ--/g, '://').replace(/Ñ/g, ':').replace(/\./g, '-').replace(/-(\d+)-?$/, '/$1/');
+            handleScan(correctedText);
+            physicalScannerInput.value = '';
+            physicalScannerInput.focus();
+        }
+    });
+
+    let stream = null;
+    async function startCamera() {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true);
+            video.play();
+            statusDiv.textContent = "Cámara activa. ¡Listo para escanear!";
+            statusDiv.classList.remove('text-warning');
+            statusDiv.classList.add('text-success');
+            requestAnimationFrame(tick);
+        } catch (err) {
+            statusDiv.textContent = "Error al iniciar la cámara. Revisa los permisos.";
+            statusDiv.classList.add('text-danger');
+        }
+    }
+
+    function tick() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+            if (code) {
+                handleScan(code.data);
+            }
+        }
+        requestAnimationFrame(tick);
+    }
+
+    startCamera();
+});
+</script>
+</body>
+</html>

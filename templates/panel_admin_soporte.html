@@ -1,0 +1,49 @@
+{% extends 'panel_admin_base.html' %}
+
+{% block title %}Gestión de Soporte - Panel de Administrador{% endblock %}
+
+{% block panel_nav_buttons %}
+    <a href="{% url 'panel-admin:panel_admin' %}" class="btn btn-outline-light">Volver al Panel</a>
+{% endblock panel_nav_buttons %}
+
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Gestión de Tickets de Soporte</h2>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Asunto</th>
+                            <th>Estado</th>
+                            <th>Fecha Creación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr>
+                            <td>{{ ticket.usuario.nombre }} {{ ticket.usuario.apellido }}</td>
+                            <td>{{ ticket.asunto|truncatechars:50 }}</td>
+                            <td>
+                                <span class="badge bg-{% if ticket.estado == 'abierto' %}primary{% elif ticket.estado == 'en_progreso' %}warning text-dark{% else %}secondary{% endif %}">{{ ticket.get_estado_display }}</span>
+                            </td>
+                            <td>{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'panel-admin:ver_ticket_soporte' ticket.id %}" class="btn btn-sm btn-outline-primary">Ver Detalles</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center">No hay tickets de soporte.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

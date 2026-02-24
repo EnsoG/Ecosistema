@@ -1,0 +1,85 @@
+{% extends 'inicio.html' %}
+{% load static %}
+
+{% block contenido %}
+<main class="container my-5">
+    <div class="text-center mb-5">
+        <h1>Directorio de Miembros</h1>
+        <p class="lead text-muted">Conecta con otros profesionales y emprendedores de la comunidad.</p>
+    </div>
+
+    <!-- Formulario de Búsqueda y Filtro -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3 align-items-center">
+                <div class="col-md-6">
+                    <input type="text" name="q" class="form-control" placeholder="Buscar por nombre..." value="{{ request.GET.q }}">
+                </div>
+                <div class="col-md-4">
+                    <select name="rubro" class="form-select">
+                        <option value="">Todos los rubros</option>
+                        {% for rubro in rubros %}
+                            <option value="{{ rubro }}" {% if request.GET.rubro == rubro %}selected{% endif %}>{{ rubro }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary">Buscar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Miembros -->
+    <div class="row g-4">
+        {% for miembro in miembros %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 text-center shadow-sm d-flex flex-column {% if not miembro.perfil_publico %}opacity-50{% endif %}">
+                    <div class="card-body">
+                        <a href="{% url 'perfil_publico' miembro.id %}">
+                            <img src="{% if miembro.foto %}{{ miembro.foto.url }}{% else %}{% static 'img/predeterminado.png' %}{% endif %}" alt="Foto de {{ miembro.nombre }}" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover;">
+                        </a>
+                        <h5 class="card-title">{{ miembro.nombre }} {{ miembro.apellido }}</h5>
+                        <p class="card-text text-muted">{{ miembro.rubro|default_if_none:"" }}</p>
+                        {% if miembro.nombre_empresa %}
+                        <p class="card-text small"><i class="bi bi-building"></i> {{ miembro.nombre_empresa }}</p>
+                        {% endif %}
+                        {% if user.is_staff and not miembro.perfil_publico %}
+                            <span class="badge bg-danger">Oculto</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer bg-white border-0 pt-0">
+                        <a href="{% url 'perfil_publico' miembro.id %}" class="btn btn-outline-primary btn-sm mt-auto mb-2">Ver Perfil</a>
+                        
+                        {% if user.is_staff and user.id != miembro.id %}
+                        <div class="admin-actions border-top pt-2 mt-2">
+                            <small class="text-muted d-block mb-1">Acciones de Admin</small>
+                            <a href="{% url 'panel-admin:toggle_destacado_usuario' miembro.id %}" class="btn btn-sm {% if miembro.destacado %}btn-warning{% else %}btn-outline-warning{% endif %}" title="{% if miembro.destacado %}Quitar destacado{% else %}Destacar miembro{% endif %}">
+                                <i class="bi {% if miembro.destacado %}bi-star-fill{% else %}bi-star{% endif %}"></i>
+                            </a>
+                            {% if not miembro.perfil_publico %}
+                                <!-- El perfil ya es privado, el admin no puede hacerlo público desde aquí -->
+                                <button class="btn btn-sm btn-secondary" disabled title="El usuario ha configurado su perfil como privado."><i class="bi bi-eye-slash-fill"></i></button>
+                            {% else %}
+                                <a href="{% url 'panel-admin:toggle_visibilidad_usuario' miembro.id %}" class="btn btn-sm btn-outline-secondary" title="Ocultar del directorio"><i class="bi bi-eye-slash-fill"></i></a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    No se encontraron miembros que coincidan con tu búsqueda.
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<!-- Si tienes scripts específicos para esta página, añádelos aquí -->
+{% endblock %}

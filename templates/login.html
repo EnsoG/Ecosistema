@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Usuario - EcosistemaLA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: transparent; /* Hacemos el fondo transparente para ver el canvas */
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            color: white;
+        }
+
+        .logo-header {
+            height: 40px;   
+            width: auto;    
+            max-width: 80px; 
+            display: block;
+        }
+
+        .logo-text {
+            margin-left: 10px;
+        }
+
+        .logo-text span {
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: block;
+        }
+
+        .logo-text small {
+            font-size: 0.7rem;
+        }
+
+        .card {
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.95); /* Un poco de transparencia para integrar mejor */
+        }
+
+        main {
+            flex: 1; /* esto permite que main ocupe todo el espacio disponible */
+            padding-top: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        footer.custom-footer {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        footer.custom-footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        footer.custom-footer a:hover {
+            text-decoration: underline;
+        }
+        .btn-gradient-green {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            border: none;
+            color: white;
+        }
+        .btn-gradient-green:hover {
+            /* Un poco más oscuro para el efecto hover */
+            background: linear-gradient(to right, #6cac00, #007a87);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="d-flex align-items-center">
+        <img src="{% static 'img/logo.jpg' %}" alt="Logo EcosistemaLA" class="logo-header">
+        <div class="logo-text">
+            <span>EcosistemaLA</span>
+            <small>Impulsando el ecosistema emprendedor del Biobío</small>
+        </div>
+    </div>
+</header>
+
+<main class="container">
+    <div class="card shadow-lg p-4 p-md-5 mx-auto" style="max-width: 450px;">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold">Iniciar Sesión</h2>
+            <p class="text-muted">Ingresa tus credenciales para acceder</p>
+            <!-- Este bloque es para errores de login, no para mensajes de éxito -->
+            {% if messages %}{% else %}
+                {% if mensaje %}<div class="alert alert-danger">{{ mensaje }}</div>{% endif %}
+            {% endif %} 
+        </div>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.email.id_for_label }}" class="form-label">Correo Electrónico</label>
+                {{ form.email }}
+            </div>
+            <div class="mb-4">
+                <label for="{{ form.password.id_for_label }}" class="form-label">Contraseña</label>
+                <div class="input-group">
+                    {{ form.password }}
+                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                        <i class="bi bi-eye-slash" id="togglePasswordIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="d-grid mb-3">
+                <button type="submit" class="btn btn-gradient-green btn-lg">Ingresar</button>
+            </div>
+            <div class="text-center">
+                <a href="{% url 'registro' %}" class="text-decoration-none">¿No tienes cuenta? <span class="text-dark">Regístrate</span></a>
+            </div>
+        </form>
+    </div>
+</main>
+
+<footer class="custom-footer mt-auto">
+    <div class="container text-center">
+        &copy; 2025 EcosistemaLA. Todos los derechos reservados.
+    </div>
+</footer>
+
+<!-- Contenedor oculto para los mensajes de Django -->
+{% if messages %}
+<div id="django-messages" style="display: none; position: absolute;">
+    {% for message in messages %}
+    <div class="django-message" 
+        data-title="{{ message.tags|capfirst }}" 
+        data-text="{{ message }}" 
+        data-icon="{{ message.tags }}">
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{% static 'js/interactive-background.js' %}"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const messageElements = document.querySelectorAll('#django-messages .django-message');
+        messageElements.forEach(function(el) {
+            // Modificamos la llamada para que no muestre el título
+            Swal.fire({
+                // title: el.dataset.title, // Eliminamos el título para un look más limpio
+                text: el.dataset.text,
+                icon: el.dataset.icon, // 'success', 'error', etc.
+                timer: 4000, // La alerta se cierra sola después de 4 segundos
+                showConfirmButton: false,
+                heightAuto: false // <-- ¡ESTA ES LA SOLUCIÓN! Evita que SweetAlert modifique la altura del body.
+            });
+        });
+
+        // Script para mostrar/ocultar contraseña
+        const togglePassword = document.querySelector('#togglePassword');
+        // Asumimos que el ID del campo de contraseña es 'id_password', que es el default de Django.
+        // Si tienes un formulario personalizado, asegúrate de que el ID sea correcto.
+        const passwordInput = document.querySelector('#id_password'); 
+        const passwordIcon = document.querySelector('#togglePasswordIcon');
+
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function () {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                passwordIcon.classList.toggle('bi-eye');
+                passwordIcon.classList.toggle('bi-eye-slash');
+            });
+        }
+
+    });
+</script>
+
+</body>
+</html>
