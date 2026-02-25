@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from usuario.models import Usuario, RUBRO_CHOICES # Asegurarse de que Usuario está importado
-from usuario.forms import AdminUsuarioForm, AyudanteUsuarioForm, UsuarioForm
+from usuario.forms import AdminUsuarioForm, AyudanteUsuarioForm, UsuarioForm, validate_rut
 from .models import Reunion, Encuesta, RespuestaEncuesta, SoporteTicket, TicketRespuesta
 from .forms import ReunionForm, EncuestaForm, SoporteTicketAdminForm, TicketRespuestaForm
 from django.urls import reverse
@@ -8,7 +8,10 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, HttpRequest
 from django.db.models import Q, F, Count, Avg, Sum
 from django.utils import timezone
+from datetime import timedelta
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.mail import send_mail
+from django.conf import settings
 import openpyxl
 from openpyxl.styles import Font, Alignment
 from openpyxl.utils import get_column_letter
@@ -923,3 +926,229 @@ def obtener_participantes_ruleta(request):
     random.shuffle(participantes)
 
     return JsonResponse({'participantes': participantes})
+
+# ========== VISTAS PÚBLICAS DE REUNIONES ==========
+
+def reunion_publica(request, reunion_id):
+    """
+    Vista pública para mostrar detalles de una reunión.
+    Cualquiera puede acceder sin necesidad de estar logueado.
+    """
+    reunion = get_object_or_404(Reunion, id=reunion_id)
+    
+    # Verificar si el usuario actual ya está interesado (si está logueado)
+    ya_interesado = False
+    usuario_actual = None
+    if request.session.get('usuario_id'):
+        try:
+            usuario_actual = Usuario.objects.get(id=request.session.get('usuario_id'))
+            ya_interesado = reunion.interesados.filter(id=usuario_actual.id).exists()
+        except Usuario.DoesNotExist:
+            pass
+    
+    # Verificar si la reunión ya pasó + 2 horas (inscripciones cerradas)
+    ahora = timezone.now()
+    limite_inscripcion = reunion.fecha + timedelta(hours=2)
+    inscripciones_cerradas = ahora > limite_inscripcion
+    
+    context = {
+        'reunion': reunion,
+        'ya_interesado': ya_interesado,
+        'usuario_actual': usuario_actual,
+        'inscripciones_cerradas': inscripciones_cerradas,
+    }
+    return render(request, 'reunion_publica.html', context)
+
+def inscribirse_reunion(request, reunion_id):
+    """
+    Maneja la inscripción a una reunión.
+    1. Verifica el RUT
+    2. Si existe: inscribe directamente y envía correo
+    3. Si no existe: permite crear cuenta
+    4. Al finalizar, inscribe como interesado
+    """
+    reunion = get_object_or_404(Reunion, id=reunion_id)
+    
+    # Verificar si las inscripciones están cerradas (reunion pasó + 2 horas)
+    ahora = timezone.now()
+    limite_inscripcion = reunion.fecha + timedelta(hours=2)
+    if ahora > limite_inscripcion:
+        messages.error(request, 'Las inscripciones para esta reunión ya están cerradas.')
+        return redirect('panel-admin:reunion_publica', reunion_id=reunion.id)
+    
+    # Si ya está logueado, inscribir directamente
+    if request.session.get('usuario_id'):
+        try:
+            usuario = Usuario.objects.get(id=request.session.get('usuario_id'))
+            # Agregar a interesados si no está ya
+            if not reunion.interesados.filter(id=usuario.id).exists():
+                reunion.interesados.add(usuario)
+                messages.success(request, f'¡Te has inscrito exitosamente en "{reunion.detalle}"!')
+            else:
+                messages.info(request, 'Ya estás inscrito en esta reunión.')
+            return redirect('panel-admin:reunion_publica', reunion_id=reunion.id)
+        except Usuario.DoesNotExist:
+            request.session.flush()
+    
+    if request.method == 'POST':
+        paso = request.POST.get('paso', 'verificar_rut')
+        
+        if paso == 'verificar_rut':
+            # Paso 1: Verificar si el RUT existe
+            rut = request.POST.get('rut', '').strip()
+            if not rut:
+                messages.error(request, 'Debes ingresar tu RUT.')
+                return render(request, 'inscripcion_reunion.html', {
+                    'reunion': reunion,
+                    'paso': 'verificar_rut'
+                })
+            
+            # Validar y normalizar el RUT
+            is_valid, result = validate_rut(rut)
+            if not is_valid:
+                messages.error(request, result)  # result contiene el mensaje de error
+                return render(request, 'inscripcion_reunion.html', {
+                    'reunion': reunion,
+                    'paso': 'verificar_rut'
+                })
+            
+            rut_limpio = result  # result contiene el RUT normalizado
+            
+            try:
+                # El RUT existe, inscribir directamente
+                usuario = Usuario.objects.get(rut=rut_limpio)
+                
+                # Verificar si ya está inscrito
+                if reunion.interesados.filter(id=usuario.id).exists():
+                    messages.info(request, f'Tu RUT ya está inscrito en esta reunión.')
+                    return redirect('panel-admin:reunion_publica', reunion_id=reunion.id)
+                
+                # Inscribir como interesado
+                reunion.interesados.add(usuario)
+                
+                # Enviar correo de confirmación
+                try:
+                    link_reunion = request.build_absolute_uri(
+                        reverse('panel-admin:reunion_publica', kwargs={'reunion_id': reunion.id})
+                    )
+                    
+                    asunto = f'Confirmación de inscripción - {reunion.detalle}'
+                    mensaje = f'''
+Hola {usuario.nombre} {usuario.apellido},
+
+¡Te has inscrito exitosamente en la reunión!
+
+Detalles de la reunión:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 {reunion.detalle}
+📅 {reunion.fecha.strftime('%d/%m/%Y')}
+🕒 {reunion.fecha.strftime('%H:%M')} hrs
+📍 {reunion.ubicacion}
+
+{reunion.descripcion}
+
+Ver más detalles: {link_reunion}
+
+¡Nos vemos pronto!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EcosistemaLA - Comunidad Emprendedora
+meetingup.cl
+                    '''
+                    
+                    send_mail(
+                        asunto,
+                        mensaje,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [usuario.email],
+                        fail_silently=True,  # No interrumpir si falla el email
+                    )
+                except Exception as e:
+                    # Si falla el email, no interrumpir el proceso
+                    print(f"Error al enviar correo: {e}")
+                
+                messages.success(request, f'¡Inscripción exitosa! Se ha enviado un correo de confirmación a {usuario.email}')
+                return redirect('panel-admin:reunion_publica', reunion_id=reunion.id)
+                
+            except Usuario.DoesNotExist:
+                # El RUT no existe, solicitar registro
+                return render(request, 'inscripcion_reunion.html', {
+                    'reunion': reunion,
+                    'paso': 'registro',
+                    'rut': rut_limpio
+                })
+        
+        elif paso == 'registro':
+            # Paso 2: Procesar registro
+            from usuario.forms import UsuarioForm
+            
+            # Pre-llenar el RUT
+            data = request.POST.copy()
+            form = UsuarioForm(data, request.FILES)
+            
+            if form.is_valid():
+                nuevo_usuario = form.save()
+                
+                # Inscribir como interesado
+                reunion.interesados.add(nuevo_usuario)
+                
+                # Enviar correo de confirmación
+                try:
+                    link_reunion = request.build_absolute_uri(
+                        reverse('panel-admin:reunion_publica', kwargs={'reunion_id': reunion.id})
+                    )
+                    
+                    asunto = f'Bienvenido a EcosistemaLA - Inscripción en {reunion.detalle}'
+                    mensaje = f'''
+Hola {nuevo_usuario.nombre} {nuevo_usuario.apellido},
+
+¡Bienvenido a EcosistemaLA!
+
+Tu cuenta ha sido creada exitosamente y te has inscrito en:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 {reunion.detalle}
+📅 {reunion.fecha.strftime('%d/%m/%Y')}
+🕒 {reunion.fecha.strftime('%H:%M')} hrs
+📍 {reunion.ubicacion}
+
+{reunion.descripcion}
+
+Ver más detalles: {link_reunion}
+
+Ahora puedes acceder a tu perfil en meetingup.cl usando tus credenciales.
+
+¡Nos vemos pronto!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EcosistemaLA - Comunidad Emprendedora
+meetingup.cl
+                    '''
+                    
+                    send_mail(
+                        asunto,
+                        mensaje,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [nuevo_usuario.email],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    print(f"Error al enviar correo: {e}")
+                
+                messages.success(request, f'¡Bienvenido {nuevo_usuario.nombre}! Tu cuenta ha sido creada y te has inscrito en "{reunion.detalle}". Se ha enviado un correo de confirmación a {nuevo_usuario.email}')
+                
+                return redirect('panel-admin:reunion_publica', reunion_id=reunion.id)
+            else:
+                # Mostrar errores del formulario
+                return render(request, 'inscripcion_reunion.html', {
+                    'reunion': reunion,
+                    'paso': 'registro',
+                    'rut': request.POST.get('rut'),
+                    'form': form
+                })
+    
+    # GET request - mostrar formulario inicial
+    return render(request, 'inscripcion_reunion.html', {
+        'reunion': reunion,
+        'paso': 'verificar_rut'
+    })

@@ -1,0 +1,338 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscripción - {{ reunion.detalle }} | EcosistemaLA</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            background-color: #f4f7f6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-header {
+            height: 50px;   
+            width: auto;
+            border-radius: 4px;
+        }
+
+        .logo-text {
+            margin-left: 10px;
+        }
+
+        .logo-text span {
+            font-weight: bold;
+            font-size: 1.2rem;
+            display: block;
+        }
+
+        .logo-text small {
+            font-size: 0.8rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .card-header-custom {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            color: white;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            color: white;
+        }
+
+        .form-control:focus {
+            border-color: #0096A7;
+            box-shadow: 0 0 0 0.2rem rgba(0, 150, 167, 0.25);
+        }
+
+        main {
+            flex: 1 0 auto;
+        }
+
+        .progress-step {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+        }
+
+        .step-item {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6c757d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-item.active .step-number {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+        }
+
+        .step-item.completed .step-number {
+            background: #0096A7;
+            color: white;
+        }
+
+        .reunion-info {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        footer {
+            background: linear-gradient(to right, #8EE000, #0096A7);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            margin-top: auto;
+            flex-shrink: 0;
+        }
+
+        footer a {
+            color: white;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="d-flex align-items-center">
+            <img src="{% static 'img/logo.jpg' %}" alt="EcosistemaLA" class="logo-header">
+            <div class="logo-text">
+                <span>EcosistemaLA</span>
+                <small>Inscripción a Reunión</small>
+            </div>
+        </div>
+    </header>
+
+    <main class="container py-5" style="flex: 1 0 auto;">
+        <div class="row justify-content-center">
+            <div class="col-lg-7">
+                <!-- Mensajes -->
+                {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Info de la Reunión -->
+                <div class="reunion-info">
+                    <h5 class="mb-2">
+                        <i class="bi bi-calendar-event text-primary me-2"></i>
+                        {{ reunion.detalle }}
+                    </h5>
+                    <p class="mb-0 small">
+                        <i class="bi bi-clock me-2"></i>{{ reunion.fecha|date:"d/m/Y H:i" }} hrs
+                        <span class="mx-2">•</span>
+                        <i class="bi bi-geo-alt me-2"></i>{{ reunion.ubicacion }}
+                    </p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header-custom">
+                        <h4 class="mb-0" style="font-weight: 600;">
+                            {% if paso == 'verificar_rut' %}
+                            Verificación de Identidad
+                            {% elif paso == 'registro' %}
+                            Crear Cuenta
+                            {% endif %}
+                        </h4>
+                    </div>
+                    <div class="card-body p-4">
+                        {% if paso == 'verificar_rut' %}
+                        <!-- Paso 1: Verificar RUT -->
+                        <p class="mb-4">Ingresa tu RUT para verificar si ya tienes una cuenta en el sistema.</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="paso" value="verificar_rut">
+                            <div class="mb-3">
+                                <label for="rut" class="form-label">RUT (sin puntos, con guión)</label>
+                                <input type="text" class="form-control form-control-lg" id="rut" name="rut" 
+                                       placeholder="12345678-9" required maxlength="12">
+                                <div class="form-text">Ejemplo: 12345678-9</div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary-custom">
+                                    Continuar <i class="bi bi-arrow-right ms-2"></i>
+                                </button>
+                                <a href="{% url 'panel-admin:reunion_publica' reunion.id %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i> Volver
+                                </a>
+                            </div>
+                        </form>
+
+                        {% elif paso == 'registro' %}
+                        <!-- Paso 2: Registro para nuevo usuario -->
+                        <div class="alert alert-success">
+                            <i class="bi bi-person-plus me-2"></i>
+                            Tu RUT no está registrado. Completa el registro para inscribirte en la reunión.
+                        </div>
+                        </div>
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="paso" value="registro">
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="rut" class="form-label">RUT *</label>
+                                    <input type="text" class="form-control" id="rut" name="rut" 
+                                           value="{{ rut }}" readonly required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                    {% if form.email.errors %}
+                                    <div class="text-danger small">{{ form.email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="nombre" class="form-label">Nombre *</label>
+                                    <input type="text" class="form-control" id="nombre" name="nombre" required>
+                                    {% if form.nombre.errors %}
+                                    <div class="text-danger small">{{ form.nombre.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="apellido" class="form-label">Apellido *</label>
+                                    <input type="text" class="form-control" id="apellido" name="apellido" required>
+                                    {% if form.apellido.errors %}
+                                    <div class="text-danger small">{{ form.apellido.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="password" class="form-label">Contraseña *</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                    {% if form.password.errors %}
+                                    <div class="text-danger small">{{ form.password.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="telefono" class="form-label">Teléfono</label>
+                                    <input type="tel" class="form-control" id="telefono" name="telefono">
+                                    {% if form.telefono.errors %}
+                                    <div class="text-danger small">{{ form.telefono.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="rubro" class="form-label">Rubro / Profesión</label>
+                                <select class="form-select" id="rubro" name="rubro">
+                                    <option value="">Seleccionar...</option>
+                                    <optgroup label="Tecnología y Desarrollo">
+                                        <option value="desarrollo_software">Desarrollo de Software</option>
+                                        <option value="desarrollo_web">Desarrollo Web</option>
+                                        <option value="desarrollo_movil">Desarrollo Móvil</option>
+                                        <option value="ia_machine_learning">Inteligencia Artificial / Machine Learning</option>
+                                        <option value="ciberseguridad">Ciberseguridad</option>
+                                        <option value="analisis_datos">Análisis de Datos / Big Data</option>
+                                    </optgroup>
+                                    <optgroup label="Diseño y Creatividad">
+                                        <option value="diseno_grafico">Diseño Gráfico</option>
+                                        <option value="diseno_ux_ui">Diseño UX/UI</option>
+                                        <option value="marketing_digital">Marketing Digital</option>
+                                    </optgroup>
+                                    <optgroup label="Negocios y Consultoría">
+                                        <option value="consultoria_negocios">Consultoría de Negocios</option>
+                                        <option value="finanzas_contabilidad">Finanzas y Contabilidad</option>
+                                        <option value="ventas_desarrollo_negocios">Ventas y Desarrollo de Negocios</option>
+                                    </optgroup>
+                                    <optgroup label="Otros">
+                                        <option value="otro">Otro</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <div class="alert alert-light border">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Los campos marcados con * son obligatorios. Al crear tu cuenta, 
+                                    quedarás automáticamente inscrito en esta reunión.
+                                </small>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary-custom">
+                                    Crear Cuenta e Inscribirme
+                                </button>
+                                <a href="{% url 'panel-admin:inscribirse_reunion' reunion.id %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left me-2"></i> Verificar otro RUT
+                                </a>
+                            </div>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

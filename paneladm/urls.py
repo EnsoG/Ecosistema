@@ -40,4 +40,7 @@ urlpatterns = [
     # --- URL para la Ruleta de Sorteos ---
     path('ruleta/', views.ruleta_sorteo, name='ruleta_sorteo'),
     path('ruleta/obtener-participantes/', views.obtener_participantes_ruleta, name='obtener_participantes_ruleta'),
+    # --- URLs Públicas de Reuniones ---
+    path('reunion/<int:reunion_id>/publica/', views.reunion_publica, name='reunion_publica'),
+    path('reunion/<int:reunion_id>/inscribirse/', views.inscribirse_reunion, name='inscribirse_reunion'),
 ]
