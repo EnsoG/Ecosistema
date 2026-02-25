@@ -78,6 +78,11 @@
             box-shadow: 0 0 0 0.2rem rgba(0, 150, 167, 0.25);
         }
 
+        .form-label {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
         main {
             flex: 1;
             padding-top: 2rem;
@@ -88,10 +93,11 @@
 
         .reunion-info {
             background: #f8f9fa;
-            padding: 1rem;
+            padding: 1.25rem;
             border-radius: 8px;
             margin-bottom: 1.5rem;
             border: 1px solid #dee2e6;
+            font-size: 1.05rem;
         }
 
         footer.custom-footer {
@@ -124,7 +130,7 @@
 
     <main class="container py-5" style="flex: 1 0 auto;">
         <div class="row justify-content-center">
-            <div class="col-lg-7">
+            <div class="col-lg-9">
                 <!-- Mensajes -->
                 {% if messages %}
                 <div class="mb-4">
@@ -152,18 +158,18 @@
 
                 <div class="card">
                     <div class="card-header-custom">
-                        <h4 class="mb-0" style="font-weight: 600;">
+                        <h3 class="mb-0" style="font-weight: 600;">
                             {% if paso == 'verificar_rut' %}
                             Verificación de Identidad
                             {% elif paso == 'registro' %}
                             Crear Cuenta
                             {% endif %}
-                        </h4>
+                        </h3>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-5">
                         {% if paso == 'verificar_rut' %}
                         <!-- Paso 1: Verificar RUT -->
-                        <p class="mb-4">Ingresa tu RUT para verificar si ya tienes una cuenta en el sistema.</p>
+                        <p class="mb-4" style="font-size: 1.05rem;">Ingresa tu RUT para verificar si ya tienes una cuenta en el sistema.</p>
                         <form method="post">
                             {% csrf_token %}
                             <input type="hidden" name="paso" value="verificar_rut">
@@ -174,10 +180,10 @@
                                 <div class="form-text">Ejemplo: 12345678-9</div>
                             </div>
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-gradient-green">
+                                <button type="submit" class="btn btn-gradient-green btn-lg" style="font-size: 1.1rem; padding: 1rem;">
                                     Continuar <i class="bi bi-arrow-right ms-2"></i>
                                 </button>
-                                <a href="{% url 'panel-admin:reunion_publica' reunion.id %}" class="btn btn-outline-secondary">
+                                <a href="{% url 'panel-admin:reunion_publica' reunion.id %}" class="btn btn-outline-secondary btn-lg">
                                     <i class="bi bi-arrow-left me-2"></i> Volver
                                 </a>
                             </div>
@@ -185,7 +191,7 @@
 
                         {% elif paso == 'registro' %}
                         <!-- Paso 2: Registro para nuevo usuario -->
-                        <p class="mb-4">Tu RUT no está registrado. Completa el registro para inscribirte en la reunión.</p>
+                        <p class="mb-4" style="font-size: 1.05rem;">Tu RUT no está registrado. Completa el registro para inscribirte en la reunión.</p>
                         <form method="post" enctype="multipart/form-data">
                             {% csrf_token %}
                             <input type="hidden" name="paso" value="registro">
@@ -193,17 +199,17 @@
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label for="nombre" class="form-label">Nombre *</label>
-                                    <input type="text" class="form-control" id="nombre" name="nombre" required>
+                                    <input type="text" class="form-control form-control-lg" id="nombre" name="nombre" required>
                                     {% if form.nombre.errors %}<div class="invalid-feedback d-block">{{ form.nombre.errors.0 }}</div>{% endif %}
                                 </div>
                                 <div class="col-md-6">
                                     <label for="apellido" class="form-label">Apellido *</label>
-                                    <input type="text" class="form-control" id="apellido" name="apellido" required>
+                                    <input type="text" class="form-control form-control-lg" id="apellido" name="apellido" required>
                                     {% if form.apellido.errors %}<div class="invalid-feedback d-block">{{ form.apellido.errors.0 }}</div>{% endif %}
                                 </div>
                                 <div class="col-md-6">
                                     <label for="rubro" class="form-label">Rubro (Opcional)</label>
-                                    <select class="form-select" id="rubro" name="rubro">
+                                    <select class="form-select form-select-lg" id="rubro" name="rubro">
                                         <option value="">Seleccionar...</option>
                                         <optgroup label="Tecnología y Desarrollo">
                                             <option value="desarrollo_software">Desarrollo de Software</option>
@@ -236,12 +242,12 @@
                                 </div>
                                 <div class="col-md-6">
                                     <label for="rut" class="form-label">RUT *</label>
-                                    <input type="text" class="form-control" id="rut" name="rut" value="{{ rut }}" readonly>
+                                    <input type="text" class="form-control form-control-lg" id="rut" name="rut" value="{{ rut }}" readonly>
                                     {% if form.rut.errors %}<div class="text-danger small mt-1">{{ form.rut.errors.0 }}</div>{% endif %}
                                 </div>
                                 <div class="col-md-6">
                                     <label for="email" class="form-label">Email *</label>
-                                    <input type="email" class="form-control" id="email" name="email" required>
+                                    <input type="email" class="form-control form-control-lg" id="email" name="email" required>
                                     {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
                                 </div>
                                 <div class="col-md-6">
@@ -271,10 +277,10 @@
                             </div>
 
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-gradient-green btn-lg">
+                                <button type="submit" class="btn btn-gradient-green btn-lg" style="font-size: 1.1rem; padding: 1rem;">
                                     Crear Cuenta e Inscribirme
                                 </button>
-                                <a href="{% url 'panel-admin:inscribirse_reunion' reunion.id %}" class="btn btn-outline-secondary">
+                                <a href="{% url 'panel-admin:inscribirse_reunion' reunion.id %}" class="btn btn-outline-secondary btn-lg">
                                     <i class="bi bi-arrow-left me-2"></i> Verificar otro RUT
                                 </a>
                             </div>
