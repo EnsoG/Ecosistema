@@ -334,5 +334,51 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        // Manejar alertas desde el backend
+        {% if alerta %}
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if alerta.tipo == 'success' %}
+            Swal.fire({
+                icon: 'success',
+                title: '{{ alerta.titulo }}',
+                html: '{{ alerta.mensaje }}',
+                confirmButtonText: 'Continuar',
+                confirmButtonColor: '#0096A7',
+                allowOutsideClick: false
+            }).then((result) => {
+                {% if alerta.redirect %}
+                window.location.href = '{{ alerta.redirect }}';
+                {% endif %}
+            });
+            {% elif alerta.tipo == 'info' %}
+            Swal.fire({
+                icon: 'info',
+                title: '{{ alerta.titulo }}',
+                html: '{{ alerta.mensaje }}',
+                confirmButtonText: 'Ver detalles de la reunión',
+                confirmButtonColor: '#0096A7'
+            }).then((result) => {
+                {% if alerta.redirect %}
+                window.location.href = '{{ alerta.redirect }}';
+                {% endif %}
+            });
+            {% elif alerta.tipo == 'warning' %}
+            Swal.fire({
+                icon: 'warning',
+                title: '{{ alerta.titulo }}',
+                html: '{{ alerta.mensaje }}',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#0096A7',
+                {% if not alerta.sin_redirect %}
+                allowOutsideClick: false
+                {% endif %}
+            });
+            {% endif %}
+        });
+        {% endif %}
+    </script>
 </body>
 </html>

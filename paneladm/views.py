@@ -1020,8 +1020,16 @@ def inscribirse_reunion(request, reunion_id):
                 
                 # Verificar si ya está inscrito
                 if reunion.interesados.filter(id=usuario.id).exists():
-                    messages.info(request, f'Tu RUT ya está inscrito en esta reunión.')
-                    return redirect('panel-admin:reunion_publica', reunion_id=reunion.id)
+                    return render(request, 'inscripcion_reunion.html', {
+                        'reunion': reunion,
+                        'paso': 'verificar_rut',
+                        'alerta': {
+                            'tipo': 'info',
+                            'titulo': 'Ya estás inscrito',
+                            'mensaje': f'{usuario.nombre}, tu RUT ya está inscrito en esta reunión.',
+                            'redirect': reverse('panel-admin:reunion_publica', kwargs={'reunion_id': reunion.id})
+                        }
+                    })
                 
                 # Inscribir como interesado
                 reunion.interesados.add(usuario)
@@ -1061,21 +1069,34 @@ meetingup.cl
                         mensaje,
                         settings.DEFAULT_FROM_EMAIL,
                         [usuario.email],
-                        fail_silently=True,  # No interrumpir si falla el email
+                        fail_silently=True,
                     )
                 except Exception as e:
-                    # Si falla el email, no interrumpir el proceso
                     print(f"Error al enviar correo: {e}")
                 
-                messages.success(request, f'¡Inscripción exitosa! Se ha enviado un correo de confirmación a {usuario.email}')
-                return redirect('panel-admin:reunion_publica', reunion_id=reunion.id)
+                return render(request, 'inscripcion_reunion.html', {
+                    'reunion': reunion,
+                    'paso': 'verificar_rut',
+                    'alerta': {
+                        'tipo': 'success',
+                        'titulo': '¡Inscripción exitosa!',
+                        'mensaje': f'{usuario.nombre}, te has inscrito en "{reunion.detalle}". Se ha enviado un correo de confirmación a {usuario.email}',
+                        'redirect': reverse('panel-admin:reunion_publica', kwargs={'reunion_id': reunion.id})
+                    }
+                })
                 
             except Usuario.DoesNotExist:
                 # El RUT no existe, solicitar registro
                 return render(request, 'inscripcion_reunion.html', {
                     'reunion': reunion,
                     'paso': 'registro',
-                    'rut': rut_limpio
+                    'rut': rut_limpio,
+                    'alerta': {
+                        'tipo': 'warning',
+                        'titulo': 'Debes registrarte',
+                        'mensaje': 'Tu RUT no está registrado en el sistema. Por favor, completa el formulario para crear una cuenta e inscribirte.',
+                        'sin_redirect': True
+                    }
                 })
         
         elif paso == 'registro':
@@ -1135,9 +1156,17 @@ meetingup.cl
                 except Exception as e:
                     print(f"Error al enviar correo: {e}")
                 
-                messages.success(request, f'¡Bienvenido {nuevo_usuario.nombre}! Tu cuenta ha sido creada y te has inscrito en "{reunion.detalle}". Se ha enviado un correo de confirmación a {nuevo_usuario.email}')
-                
-                return redirect('panel-admin:reunion_publica', reunion_id=reunion.id)
+                return render(request, 'inscripcion_reunion.html', {
+                    'reunion': reunion,
+                    'paso': 'registro',
+                    'rut': nuevo_usuario.rut,
+                    'alerta': {
+                        'tipo': 'success',
+                        'titulo': '¡Cuenta creada!',
+                        'mensaje': f'¡Bienvenido {nuevo_usuario.nombre}! Tu cuenta ha sido creada y te has inscrito en "{reunion.detalle}". Se ha enviado un correo de confirmación.',
+                        'redirect': reverse('panel-admin:reunion_publica', kwargs={'reunion_id': reunion.id})
+                    }
+                })
             else:
                 # Mostrar errores del formulario
                 return render(request, 'inscripcion_reunion.html', {
