@@ -103,8 +103,10 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "ecola",
-        "USER": "ecola_user",
-        "PASSWORD": "Admin.123",   # la que creaste en MariaDB
+        # "USER": "ecola_user",
+        # "PASSWORD": "Admin.123",   # la que creaste en MariaDB
+        "USER": "root",
+        "PASSWORD": "",   # la que creaste en MariaDB
         "HOST": "127.0.0.1",
         "PORT": "3306",
         "OPTIONS": {

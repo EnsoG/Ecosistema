@@ -7,15 +7,16 @@
     <title>Inscripción - {{ reunion.detalle }} | EcosistemaLA</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
         body {
-            font-family: 'Poppins', Arial, sans-serif;
-            background-color: #f4f7f6;
-            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background-color: transparent;
             display: flex;
             flex-direction: column;
         }
@@ -26,13 +27,11 @@
             display: flex;
             align-items: center;
             color: white;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
 
         .logo-header {
             height: 50px;   
             width: auto;
-            border-radius: 4px;
         }
 
         .logo-text {
@@ -50,32 +49,27 @@
         }
 
         .card {
-            border: none;
-            border-radius: 12px;
-            background: #ffffff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.95);
         }
 
         .card-header-custom {
             background: linear-gradient(to right, #8EE000, #0096A7);
             color: white;
             padding: 1.5rem;
-            border-radius: 12px 12px 0 0;
+            border-radius: 10px 10px 0 0;
         }
 
-        .btn-primary-custom {
+        .btn-gradient-green {
             background: linear-gradient(to right, #8EE000, #0096A7);
             border: none;
-            padding: 0.8rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
             color: white;
-            transition: all 0.2s ease;
+            padding: 0.8rem 2rem;
+            font-weight: 600;
         }
 
-        .btn-primary-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        .btn-gradient-green:hover {
+            background: linear-gradient(to right, #6cac00, #007a87);
             color: white;
         }
 
@@ -85,42 +79,11 @@
         }
 
         main {
-            flex: 1 0 auto;
-        }
-
-        .progress-step {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 2rem;
-        }
-
-        .step-item {
             flex: 1;
-            text-align: center;
-            position: relative;
-        }
-
-        .step-number {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #e9ecef;
-            color: #6c757d;
-            display: inline-flex;
-            align-items: center;
+            padding-top: 2rem;
+            display: flex;
             justify-content: center;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .step-item.active .step-number {
-            background: linear-gradient(to right, #8EE000, #0096A7);
-            color: white;
-        }
-
-        .step-item.completed .step-number {
-            background: #0096A7;
-            color: white;
+            align-items: flex-start;
         }
 
         .reunion-info {
@@ -128,23 +91,22 @@
             padding: 1rem;
             border-radius: 8px;
             margin-bottom: 1.5rem;
+            border: 1px solid #dee2e6;
         }
 
-        footer {
+        footer.custom-footer {
             background: linear-gradient(to right, #8EE000, #0096A7);
             color: white;
             padding: 30px 20px;
             text-align: center;
-            margin-top: auto;
-            flex-shrink: 0;
         }
 
-        footer a {
+        footer.custom-footer a {
             color: white;
             text-decoration: none;
         }
 
-        footer a:hover {
+        footer.custom-footer a:hover {
             text-decoration: underline;
         }
     </style>
@@ -212,7 +174,7 @@
                                 <div class="form-text">Ejemplo: 12345678-9</div>
                             </div>
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary-custom">
+                                <button type="submit" class="btn btn-gradient-green">
                                     Continuar <i class="bi bi-arrow-right ms-2"></i>
                                 </button>
                                 <a href="{% url 'panel-admin:reunion_publica' reunion.id %}" class="btn btn-outline-secondary">
@@ -223,102 +185,93 @@
 
                         {% elif paso == 'registro' %}
                         <!-- Paso 2: Registro para nuevo usuario -->
-                        <div class="alert alert-success">
-                            <i class="bi bi-person-plus me-2"></i>
-                            Tu RUT no está registrado. Completa el registro para inscribirte en la reunión.
-                        </div>
-                        </div>
+                        <p class="mb-4">Tu RUT no está registrado. Completa el registro para inscribirte en la reunión.</p>
                         <form method="post" enctype="multipart/form-data">
                             {% csrf_token %}
                             <input type="hidden" name="paso" value="registro">
                             
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="rut" class="form-label">RUT *</label>
-                                    <input type="text" class="form-control" id="rut" name="rut" 
-                                           value="{{ rut }}" readonly required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="email" class="form-label">Email *</label>
-                                    <input type="email" class="form-control" id="email" name="email" required>
-                                    {% if form.email.errors %}
-                                    <div class="text-danger small">{{ form.email.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
+                            <div class="row g-3">
+                                <div class="col-md-6">
                                     <label for="nombre" class="form-label">Nombre *</label>
                                     <input type="text" class="form-control" id="nombre" name="nombre" required>
-                                    {% if form.nombre.errors %}
-                                    <div class="text-danger small">{{ form.nombre.errors.0 }}</div>
-                                    {% endif %}
+                                    {% if form.nombre.errors %}<div class="invalid-feedback d-block">{{ form.nombre.errors.0 }}</div>{% endif %}
                                 </div>
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-6">
                                     <label for="apellido" class="form-label">Apellido *</label>
                                     <input type="text" class="form-control" id="apellido" name="apellido" required>
-                                    {% if form.apellido.errors %}
-                                    <div class="text-danger small">{{ form.apellido.errors.0 }}</div>
-                                    {% endif %}
+                                    {% if form.apellido.errors %}<div class="invalid-feedback d-block">{{ form.apellido.errors.0 }}</div>{% endif %}
                                 </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="password" class="form-label">Contraseña *</label>
-                                    <input type="password" class="form-control" id="password" name="password" required>
-                                    {% if form.password.errors %}
-                                    <div class="text-danger small">{{ form.password.errors.0 }}</div>
-                                    {% endif %}
+                                <div class="col-md-6">
+                                    <label for="rubro" class="form-label">Rubro (Opcional)</label>
+                                    <select class="form-select" id="rubro" name="rubro">
+                                        <option value="">Seleccionar...</option>
+                                        <optgroup label="Tecnología y Desarrollo">
+                                            <option value="desarrollo_software">Desarrollo de Software</option>
+                                            <option value="desarrollo_web">Desarrollo Web</option>
+                                            <option value="desarrollo_movil">Desarrollo Móvil</option>
+                                            <option value="ia_machine_learning">Inteligencia Artificial / Machine Learning</option>
+                                            <option value="ciberseguridad">Ciberseguridad</option>
+                                            <option value="analisis_datos">Análisis de Datos / Big Data</option>
+                                        </optgroup>
+                                        <optgroup label="Diseño y Creatividad">
+                                            <option value="diseno_grafico">Diseño Gráfico</option>
+                                            <option value="diseno_ux_ui">Diseño UX/UI</option>
+                                            <option value="marketing_digital">Marketing Digital</option>
+                                        </optgroup>
+                                        <optgroup label="Negocios y Consultoría">
+                                            <option value="consultoria_negocios">Consultoría de Negocios</option>
+                                            <option value="finanzas_contabilidad">Finanzas y Contabilidad</option>
+                                            <option value="ventas_desarrollo_negocios">Ventas y Desarrollo de Negocios</option>
+                                        </optgroup>
+                                        <optgroup label="Otros">
+                                            <option value="otro">Otro</option>
+                                        </optgroup>
+                                    </select>
+                                    {% if form.rubro.errors %}<div class="invalid-feedback d-block">{{ form.rubro.errors.0 }}</div>{% endif %}
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="telefono" class="form-label">Teléfono</label>
+                                <div class="col-md-6" id="otroRubroContainer" style="display: none;">
+                                    <label for="rubro_otro" class="form-label">Especifica tu rubro *</label>
+                                    <input type="text" class="form-control" id="rubro_otro" name="rubro_otro">
+                                    {% if form.rubro_otro.errors %}<div class="invalid-feedback d-block">{{ form.rubro_otro.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="rut" class="form-label">RUT *</label>
+                                    <input type="text" class="form-control" id="rut" name="rut" value="{{ rut }}" readonly>
+                                    {% if form.rut.errors %}<div class="text-danger small mt-1">{{ form.rut.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="email" class="form-label">Email *</label>
+                                    <input type="email" class="form-control" id="email" name="email" required>
+                                    {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="telefono" class="form-label">Teléfono (Opcional)</label>
                                     <input type="tel" class="form-control" id="telefono" name="telefono">
-                                    {% if form.telefono.errors %}
-                                    <div class="text-danger small">{{ form.telefono.errors.0 }}</div>
-                                    {% endif %}
+                                    {% if form.telefono.errors %}<div class="invalid-feedback d-block">{{ form.telefono.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Foto de Perfil (Opcional)</label>
+                                    <div class="input-group">
+                                        <label for="foto" class="btn btn-outline-secondary">
+                                            <i class="bi bi-upload me-2"></i>Elegir archivo
+                                        </label>
+                                        <span id="fileName" class="form-control text-muted" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Ningún archivo seleccionado</span>
+                                    </div>
+                                    <input type="file" class="form-control d-none" id="foto" name="foto" accept="image/*">
+                                    {% if form.foto.errors %}<div class="invalid-feedback d-block">{{ form.foto.errors.0 }}</div>{% endif %}
+                                    <img id="fotoPreview" src="#" alt="Vista previa" style="display:none; margin-top: 10px; max-width: 150px; max-height: 150px; border-radius: 50%;">
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="rubro" class="form-label">Rubro / Profesión</label>
-                                <select class="form-select" id="rubro" name="rubro">
-                                    <option value="">Seleccionar...</option>
-                                    <optgroup label="Tecnología y Desarrollo">
-                                        <option value="desarrollo_software">Desarrollo de Software</option>
-                                        <option value="desarrollo_web">Desarrollo Web</option>
-                                        <option value="desarrollo_movil">Desarrollo Móvil</option>
-                                        <option value="ia_machine_learning">Inteligencia Artificial / Machine Learning</option>
-                                        <option value="ciberseguridad">Ciberseguridad</option>
-                                        <option value="analisis_datos">Análisis de Datos / Big Data</option>
-                                    </optgroup>
-                                    <optgroup label="Diseño y Creatividad">
-                                        <option value="diseno_grafico">Diseño Gráfico</option>
-                                        <option value="diseno_ux_ui">Diseño UX/UI</option>
-                                        <option value="marketing_digital">Marketing Digital</option>
-                                    </optgroup>
-                                    <optgroup label="Negocios y Consultoría">
-                                        <option value="consultoria_negocios">Consultoría de Negocios</option>
-                                        <option value="finanzas_contabilidad">Finanzas y Contabilidad</option>
-                                        <option value="ventas_desarrollo_negocios">Ventas y Desarrollo de Negocios</option>
-                                    </optgroup>
-                                    <optgroup label="Otros">
-                                        <option value="otro">Otro</option>
-                                    </optgroup>
-                                </select>
-                            </div>
+                            <hr class="my-4">
 
-                            <div class="alert alert-light border">
-                                <small class="text-muted">
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    Los campos marcados con * son obligatorios. Al crear tu cuenta, 
-                                    quedarás automáticamente inscrito en esta reunión.
-                                </small>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                Tu contraseña será tu RUT sin el dígito verificador. Podrás cambiarla más tarde desde tu perfil.
                             </div>
 
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary-custom">
+                                <button type="submit" class="btn btn-gradient-green btn-lg">
                                     Crear Cuenta e Inscribirme
                                 </button>
                                 <a href="{% url 'panel-admin:inscribirse_reunion' reunion.id %}" class="btn btn-outline-secondary">
@@ -337,6 +290,43 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
+        // Manejar cambio de foto de perfil
+        const fotoInput = document.getElementById('foto');
+        const fileNameSpan = document.getElementById('fileName');
+        const fotoPreview = document.getElementById('fotoPreview');
+
+        if (fotoInput) {
+            fotoInput.addEventListener('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    fileNameSpan.textContent = file.name;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        fotoPreview.src = event.target.result;
+                        fotoPreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Manejar mostrar/ocultar campo "rubro_otro"
+        const rubroSelect = document.getElementById('rubro');
+        const otroRubroContainer = document.getElementById('otroRubroContainer');
+
+        if (rubroSelect) {
+            rubroSelect.addEventListener('change', function() {
+                if (this.value === 'otro') {
+                    otroRubroContainer.style.display = 'block';
+                    document.getElementById('rubro_otro').required = true;
+                } else {
+                    otroRubroContainer.style.display = 'none';
+                    document.getElementById('rubro_otro').required = false;
+                }
+            });
+        }
+
         // Manejar alertas desde el backend
         {% if alerta %}
         document.addEventListener('DOMContentLoaded', function() {
