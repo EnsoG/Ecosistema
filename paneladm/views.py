@@ -10,7 +10,7 @@ from django.db.models import Q, F, Count, Avg, Sum
 from django.utils import timezone
 from datetime import timedelta
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
 import openpyxl
 from openpyxl.styles import Font, Alignment
@@ -1057,6 +1057,15 @@ Detalles de la reunión:
 
 Ver más detalles: {link_reunion}
 
+📱 INGRESO AL EVENTO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Para ingresar al evento, debes presentar tu código QR personal que
+está adjunto en este correo. El equipo de registro escaneará tu código
+en la entrada.
+
+También puedes acceder a tu código QR en cualquier momento ingresando
+al sitio web: meetingup.cl
+
 ¡Nos vemos pronto!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1064,13 +1073,20 @@ EcosistemaLA - Comunidad Emprendedora
 meetingup.cl
                     '''
                     
-                    send_mail(
+                    # Crear correo con EmailMessage para adjuntar el QR
+                    email = EmailMessage(
                         asunto,
                         mensaje,
                         settings.DEFAULT_FROM_EMAIL,
                         [usuario.email],
-                        fail_silently=True,
                     )
+                    
+                    # Adjuntar el QR si existe
+                    if usuario.qr_code:
+                        email.attach_file(usuario.qr_code.path)
+                    
+                    email.send(fail_silently=True)
+                    
                 except Exception as e:
                     print(f"Error al enviar correo: {e}")
                 
@@ -1110,6 +1126,9 @@ meetingup.cl
             if form.is_valid():
                 nuevo_usuario = form.save()
                 
+                # Refrescar el objeto para obtener el QR generado por el signal
+                nuevo_usuario.refresh_from_db()
+                
                 # Inscribir como interesado
                 reunion.interesados.add(nuevo_usuario)
                 
@@ -1137,7 +1156,16 @@ Tu cuenta ha sido creada exitosamente y te has inscrito en:
 
 Ver más detalles: {link_reunion}
 
-Ahora puedes acceder a tu perfil en meetingup.cl usando tus credenciales.
+📱 INGRESO AL EVENTO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Para ingresar al evento, debes presentar tu código QR personal que
+está adjunto en este correo. El equipo de registro escaneará tu código
+en la entrada.
+
+También puedes acceder a tu código QR en cualquier momento ingresando
+al sitio web: meetingup.cl
+
+Ahora puedes acceder a tu perfil usando tus credenciales.
 
 ¡Nos vemos pronto!
 
@@ -1146,13 +1174,20 @@ EcosistemaLA - Comunidad Emprendedora
 meetingup.cl
                     '''
                     
-                    send_mail(
+                    # Crear correo con EmailMessage para adjuntar el QR
+                    email = EmailMessage(
                         asunto,
                         mensaje,
                         settings.DEFAULT_FROM_EMAIL,
                         [nuevo_usuario.email],
-                        fail_silently=True,
                     )
+                    
+                    # Adjuntar el QR si existe
+                    if nuevo_usuario.qr_code:
+                        email.attach_file(nuevo_usuario.qr_code.path)
+                    
+                    email.send(fail_silently=True)
+                    
                 except Exception as e:
                     print(f"Error al enviar correo: {e}")
                 
